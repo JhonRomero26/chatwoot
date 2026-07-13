@@ -37,6 +37,6 @@ class AgentAvailabilityFinder
     return false unless schedule.day_of_week == local_now.wday
 
     local_minutes = (local_now.hour * 60) + local_now.min
-    local_minutes.between?(schedule.start_minutes, schedule.end_minutes)
+    local_minutes >= schedule.start_minutes && local_minutes < schedule.end_minutes
   end
 end

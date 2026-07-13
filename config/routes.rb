@@ -58,6 +58,7 @@ Rails.application.routes.draw do
           resource :onboarding, only: [:update] do
             get :help_center_generation
           end
+          resources :agent_roles, except: [:new, :edit]
           resources :agents, only: [:index, :create, :update, :destroy] do
             get :available, on: :collection
             match :availability_schedule, on: :member, via: [:get, :put]

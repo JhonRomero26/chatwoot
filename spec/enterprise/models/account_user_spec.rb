@@ -27,6 +27,22 @@ RSpec.describe AccountUser, type: :model do
         expect(account_user.permissions).to eq([account_user.role])
       end
     end
+
+    context 'when both a restrictive custom_role and a leftover agent_role are present' do
+      it 'does not grant conversation_manage/report_manage from the agent_role' do
+        account = create(:account)
+        custom_role = create(:custom_role, account: account, permissions: ['contact_manage'])
+        agent_role = create(:agent_role, account: account, permissions: %w[conversation_manage report_manage])
+        account_user = create(:account_user, account: account, custom_role: custom_role)
+
+        # simulate a leftover/concurrently-set agent_role_id bypassing the write-path guard
+        account_user.update_column(:agent_role_id, agent_role.id) # rubocop:disable Rails/SkipsModelValidations
+
+        expect(account_user.permissions).to eq(custom_role.permissions + ['custom_role'])
+        expect(account_user.conversation_manage?).to be(false)
+        expect(account_user.report_manage?).to be(false)
+      end
+    end
   end
 
   describe 'filtered unread count invalidation' do

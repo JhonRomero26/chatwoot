@@ -9,15 +9,20 @@ RSpec.describe Conversations::PermissionFilterService do
   let(:admin) { create(:user, account: account, role: :administrator) }
   let(:agent) { create(:user, account: account, role: :agent) }
   let(:other_agent) { create(:user, account: account, role: :agent) }
-  let(:supervisor) { create(:user, account: account, role: :agent) }
+  let(:conversation_manager) { create(:user, account: account, role: :agent) }
+  let(:report_manager) { create(:user, account: account, role: :agent) }
+  let(:conversation_manager_role) { create(:agent_role, account: account, permissions: ['conversation_manage']) }
+  let(:report_manager_role) { create(:agent_role, account: account, permissions: ['report_manage']) }
   let!(:inbox) { create(:inbox, account: account) }
   let!(:other_inbox) { create(:inbox, account: account) }
 
   # This inbox_member is used to establish the agent's access to the inbox
   before do
     create(:inbox_member, user: agent, inbox: inbox)
-    create(:inbox_member, user: supervisor, inbox: inbox)
-    supervisor.account_users.find_by(account: account).update!(supervisor: true)
+    create(:inbox_member, user: conversation_manager, inbox: inbox)
+    create(:inbox_member, user: report_manager, inbox: inbox)
+    conversation_manager.account_users.find_by(account: account).update!(agent_role: conversation_manager_role)
+    report_manager.account_users.find_by(account: account).update!(agent_role: report_manager_role)
   end
 
   describe '#perform' do
@@ -50,11 +55,11 @@ RSpec.describe Conversations::PermissionFilterService do
       end
     end
 
-    context 'when user is a supervisor' do
+    context 'when user has conversation_manage permission' do
       it 'returns all conversations' do
         result = described_class.new(
           account.conversations,
-          supervisor,
+          conversation_manager,
           account
         ).perform
 
@@ -64,6 +69,18 @@ RSpec.describe Conversations::PermissionFilterService do
           assigned_to_other_agent,
           other_inbox_conversation
         )
+      end
+    end
+
+    context 'when user only has report_manage permission' do
+      it 'does not get privileged conversation visibility' do
+        result = described_class.new(
+          account.conversations,
+          report_manager,
+          account
+        ).perform
+
+        expect(result).to contain_exactly(unassigned_conversation)
       end
     end
 

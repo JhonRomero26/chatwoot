@@ -32,6 +32,6 @@ module Custom::Reports::AccessControl
   end
 
   def report_manage?(account_user)
-    account_user.respond_to?(:custom_role) && account_user.custom_role&.permissions&.include?('report_manage')
+    account_user.respond_to?(:report_manage?) && account_user.report_manage?
   end
 end

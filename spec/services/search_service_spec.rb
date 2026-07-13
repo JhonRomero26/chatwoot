@@ -6,12 +6,15 @@ describe SearchService do
   let(:search_type) { 'all' }
   let!(:account) { create(:account) }
   let!(:user) { create(:user, account: account) }
-  let!(:supervisor_user) { create(:user, account: account) }
+  let!(:conversation_manager_user) { create(:user, account: account) }
+  let!(:report_manager_user) { create(:user, account: account) }
+  let!(:conversation_manager_role) { create(:agent_role, account: account, permissions: ['conversation_manage']) }
+  let!(:report_manager_role) { create(:agent_role, account: account, permissions: ['report_manage']) }
   let!(:inbox) { create(:inbox, account: account, enable_auto_assignment: false) }
   let!(:harry) { create(:contact, name: 'Harry Potter', email: 'test@test.com', account_id: account.id) }
   let!(:conversation) { create(:conversation, contact: harry, inbox: inbox, account: account, assignee: user) }
   let!(:unassigned_conversation) { create(:conversation, contact: harry, inbox: inbox, account: account, assignee: nil) }
-  let!(:other_assigned_conversation) { create(:conversation, contact: harry, inbox: inbox, account: account, assignee: supervisor_user) }
+  let!(:other_assigned_conversation) { create(:conversation, contact: harry, inbox: inbox, account: account, assignee: conversation_manager_user) }
   let!(:message) { create(:message, account: account, inbox: inbox, content: 'Harry Potter is a wizard') }
   let!(:portal) { create(:portal, account: account) }
   let(:article) do
@@ -21,8 +24,10 @@ describe SearchService do
 
   before do
     create(:inbox_member, user: user, inbox: inbox)
-    create(:inbox_member, user: supervisor_user, inbox: inbox)
-    supervisor_user.account_users.find_by(account: account).update!(supervisor: true)
+    create(:inbox_member, user: conversation_manager_user, inbox: inbox)
+    create(:inbox_member, user: report_manager_user, inbox: inbox)
+    conversation_manager_user.account_users.find_by(account: account).update!(agent_role: conversation_manager_role)
+    report_manager_user.account_users.find_by(account: account).update!(agent_role: report_manager_role)
     Current.account = account
   end
 
@@ -263,11 +268,18 @@ describe SearchService do
         expect(search.perform[:conversations]).to be_empty
       end
 
-      it 'lets supervisors search every conversation' do
+      it 'lets conversation managers search every conversation' do
         params = { q: other_assigned_conversation.display_id }
-        search = described_class.new(current_user: supervisor_user, current_account: account, params: params, search_type: 'Conversation')
+        search = described_class.new(current_user: conversation_manager_user, current_account: account, params: params, search_type: 'Conversation')
 
         expect(search.perform[:conversations].map(&:id)).to include(other_assigned_conversation.id)
+      end
+
+      it 'does not let report managers search every conversation' do
+        params = { q: other_assigned_conversation.display_id }
+        search = described_class.new(current_user: report_manager_user, current_account: account, params: params, search_type: 'Conversation')
+
+        expect(search.perform[:conversations]).to be_empty
       end
     end
 

@@ -8,8 +8,13 @@ module Custom::VisibilityConcern
   end
 
   def privileged_account_users(account)
-    administrators = account.account_users.where(role: AccountUser.roles[:administrator])
-    administrators.or(account.account_users.where(supervisor: true))
+    account.account_users
+           .left_outer_joins(:agent_role)
+           .where(
+             'account_users.role = :administrator_role OR :conversation_manage = ANY(agent_roles.permissions)',
+             administrator_role: AccountUser.roles[:administrator],
+             conversation_manage: 'conversation_manage'
+           )
   end
 
   def visible_conversations(scope, account_user)

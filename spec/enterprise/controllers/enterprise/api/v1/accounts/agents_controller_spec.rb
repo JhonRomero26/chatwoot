@@ -34,6 +34,20 @@ RSpec.describe 'Enterprise Agents API', type: :request do
         expect(other_agent.account_users.first.reload.custom_role_id).to eq(custom_role.id)
         expect(JSON.parse(response.body)['custom_role_id']).to eq(custom_role.id)
       end
+
+      it 'clears a leftover agent_role_id when a custom_role_id is assigned' do
+        agent_role = create(:agent_role, account: account, permissions: ['conversation_manage'])
+        other_agent.account_users.first.update_column(:agent_role_id, agent_role.id) # rubocop:disable Rails/SkipsModelValidations
+
+        put "/api/v1/accounts/#{account.id}/agents/#{other_agent.id}",
+            headers: admin.create_new_auth_token,
+            params: { custom_role_id: custom_role.id },
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(other_agent.account_users.first.reload.agent_role_id).to be_nil
+        expect(other_agent.account_users.first.custom_role_id).to eq(custom_role.id)
+      end
     end
   end
 end

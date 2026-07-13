@@ -50,12 +50,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_184351) do
     t.datetime "active_at", precision: nil
     t.integer "availability", default: 0, null: false
     t.boolean "auto_offline", default: true, null: false
-    t.boolean "supervisor", default: false, null: false
     t.bigint "custom_role_id"
     t.bigint "agent_capacity_policy_id"
+    t.bigint "agent_role_id"
+    t.string "availability_schedule_timezone"
     t.index ["account_id", "user_id"], name: "uniq_user_id_per_account_id", unique: true
     t.index ["account_id"], name: "index_account_users_on_account_id"
     t.index ["agent_capacity_policy_id"], name: "index_account_users_on_agent_capacity_policy_id"
+    t.index ["agent_role_id"], name: "index_account_users_on_agent_role_id"
     t.index ["custom_role_id"], name: "index_account_users_on_custom_role_id"
     t.index ["user_id"], name: "index_account_users_on_user_id"
   end
@@ -158,6 +160,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_184351) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_agent_capacity_policies_on_account_id"
+  end
+
+  create_table "agent_roles", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.text "permissions", default: [], null: false, array: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_agent_roles_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_agent_roles_on_account_id"
   end
 
   create_table "agent_sessions", force: :cascade do |t|
@@ -1504,9 +1516,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_184351) do
     t.index ["inbox_id"], name: "index_working_hours_on_inbox_id"
   end
 
+  add_foreign_key "account_users", "agent_roles", on_delete: :nullify
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "agent_availability_schedules", "account_users", on_delete: :cascade
+  add_foreign_key "agent_roles", "accounts"
   add_foreign_key "inboxes", "portals"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).

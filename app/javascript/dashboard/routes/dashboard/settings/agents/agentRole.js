@@ -1,35 +1,60 @@
 export const AGENT_ROLE_IDS = {
   ADMINISTRATOR: 'administrator',
-  SUPERVISOR: 'supervisor',
   AGENT: 'agent',
 };
 
+const AGENT_ROLE_PREFIX = 'agent_role:';
 const CUSTOM_ROLE_PREFIX = 'custom_role:';
 
-const customRoleOptionId = customRoleId => `${CUSTOM_ROLE_PREFIX}${customRoleId}`;
+const agentRoleOptionId = agentRoleId => `${AGENT_ROLE_PREFIX}${agentRoleId}`;
+const customRoleOptionId = customRoleId =>
+  `${CUSTOM_ROLE_PREFIX}${customRoleId}`;
 
-const findCustomRole = (customRoles, customRoleId) =>
-  customRoles.find(role => role.id === customRoleId);
+const hasOption = (options, optionId) =>
+  options.some(option => option.id === optionId);
 
-export const buildAgentRoles = (t, customRoles = []) => [
-  {
-    id: AGENT_ROLE_IDS.ADMINISTRATOR,
-    label: t('AGENT_MGMT.AGENT_TYPES.ADMINISTRATOR'),
-  },
-  {
-    id: AGENT_ROLE_IDS.SUPERVISOR,
-    label: t('AGENT_MGMT.AGENT_TYPES.SUPERVISOR'),
-  },
-  {
-    id: AGENT_ROLE_IDS.AGENT,
-    label: t('AGENT_MGMT.AGENT_TYPES.AGENT'),
-  },
-  ...customRoles.map(role => ({
-    id: customRoleOptionId(role.id),
-    label: role.name,
-    permissions: role.permissions || [],
-  })),
-];
+const translateRoleLabel = (t, roleId) => {
+  if (roleId === AGENT_ROLE_IDS.ADMINISTRATOR) {
+    return t('AGENT_MGMT.AGENT_TYPES.ADMINISTRATOR');
+  }
+
+  return t('AGENT_MGMT.AGENT_TYPES.AGENT');
+};
+
+export const buildAgentRoles = (
+  t,
+  agentRoles = [],
+  legacyCustomRole = null
+) => {
+  const options = [
+    {
+      id: AGENT_ROLE_IDS.ADMINISTRATOR,
+      label: translateRoleLabel(t, AGENT_ROLE_IDS.ADMINISTRATOR),
+    },
+    ...agentRoles.map(role => ({
+      id: agentRoleOptionId(role.id),
+      label: role.name,
+      permissions: role.permissions || [],
+    })),
+    {
+      id: AGENT_ROLE_IDS.AGENT,
+      label: translateRoleLabel(t, AGENT_ROLE_IDS.AGENT),
+    },
+  ];
+
+  if (
+    legacyCustomRole &&
+    !hasOption(options, customRoleOptionId(legacyCustomRole.id))
+  ) {
+    options.splice(options.length - 1, 0, {
+      id: customRoleOptionId(legacyCustomRole.id),
+      label: legacyCustomRole.name,
+      permissions: legacyCustomRole.permissions || [],
+    });
+  }
+
+  return options;
+};
 
 export const agentRoleId = agent => {
   if (agent.custom_role_id) {
@@ -40,40 +65,60 @@ export const agentRoleId = agent => {
     return AGENT_ROLE_IDS.ADMINISTRATOR;
   }
 
-  return agent.supervisor ? AGENT_ROLE_IDS.SUPERVISOR : AGENT_ROLE_IDS.AGENT;
+  return agent.agent_role_id
+    ? agentRoleOptionId(agent.agent_role_id)
+    : AGENT_ROLE_IDS.AGENT;
 };
 
 export const agentRolePayload = roleId => {
+  if (roleId.startsWith(AGENT_ROLE_PREFIX)) {
+    return {
+      role: 'agent',
+      agent_role_id: Number(roleId.replace(AGENT_ROLE_PREFIX, '')),
+      custom_role_id: null,
+    };
+  }
+
   if (roleId.startsWith(CUSTOM_ROLE_PREFIX)) {
     return {
       role: 'agent',
-      supervisor: false,
       custom_role_id: Number(roleId.replace(CUSTOM_ROLE_PREFIX, '')),
+      agent_role_id: null,
     };
   }
 
   switch (roleId) {
     case AGENT_ROLE_IDS.ADMINISTRATOR:
-      return { role: 'administrator', supervisor: false, custom_role_id: null };
-    case AGENT_ROLE_IDS.SUPERVISOR:
-      return { role: 'agent', supervisor: true, custom_role_id: null };
+      return {
+        role: 'administrator',
+        agent_role_id: null,
+        custom_role_id: null,
+      };
     default:
-      return { role: 'agent', supervisor: false, custom_role_id: null };
+      return { role: 'agent', agent_role_id: null, custom_role_id: null };
   }
 };
 
-export const agentRoleLabel = (agent, t, customRoles = []) => {
+export const agentRoleLabel = (agent, t) => {
   if (agent.custom_role_id) {
-    return findCustomRole(customRoles, agent.custom_role_id)?.name || '';
+    return agent.custom_role?.name || '';
   }
 
-  return t(`AGENT_MGMT.AGENT_TYPES.${agentRoleId(agent).toUpperCase()}`);
+  if (agent.agent_role_id) {
+    return agent.agent_role?.name || '';
+  }
+
+  return translateRoleLabel(t, agentRoleId(agent));
 };
 
-export const agentRolePermissions = (agent, customRoles = []) => {
-  if (!agent.custom_role_id) {
-    return [];
+export const agentRolePermissions = agent => {
+  if (agent.custom_role_id) {
+    return agent.custom_role?.permissions || [];
   }
 
-  return findCustomRole(customRoles, agent.custom_role_id)?.permissions || [];
+  if (agent.agent_role_id) {
+    return agent.agent_role?.permissions || [];
+  }
+
+  return [];
 };

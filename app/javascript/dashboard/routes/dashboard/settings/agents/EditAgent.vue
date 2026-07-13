@@ -39,9 +39,13 @@ const props = defineProps({
     type: Number,
     default: null,
   },
-  supervisor: {
-    type: Boolean,
-    default: false,
+  customRole: {
+    type: Object,
+    default: null,
+  },
+  agentRoleIdValue: {
+    type: Number,
+    default: null,
   },
 });
 
@@ -57,8 +61,8 @@ const agentAvailability = ref(props.availability);
 const selectedRoleId = ref(
   agentRoleId({
     role: props.type,
-    supervisor: props.supervisor,
     custom_role_id: props.customRoleId,
+    agent_role_id: props.agentRoleIdValue,
   })
 );
 const agentCredentials = ref({ email: props.email });
@@ -80,8 +84,10 @@ const pageTitle = computed(
 );
 
 const uiFlags = useMapGetter('agents/getUIFlags');
-const getCustomRoles = useMapGetter('customRole/getCustomRoles');
-const roles = computed(() => buildAgentRoles(t, getCustomRoles.value));
+const getAgentRoles = useMapGetter('agentRoles/getAgentRoles');
+const roles = computed(() =>
+  buildAgentRoles(t, getAgentRoles.value, props.customRole)
+);
 
 const statusList = computed(() => {
   return [

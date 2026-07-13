@@ -60,4 +60,14 @@ RSpec.describe AgentAvailabilityFinder do
     expect(described_class.new(account, Time.zone.parse('2026-07-13 18:30:00 UTC')).perform.map(&:user)).to include(busy_agent)
     expect(described_class.new(account, Time.zone.parse('2026-07-13 13:00:00 UTC')).perform.map(&:user)).not_to include(busy_agent)
   end
+
+  it 'treats end minutes as exclusive so adjacent ranges do not double count' do
+    adjacent_agent = create(:user, account: account, role: :agent, name: 'Adjacent Agent')
+    account_user = adjacent_agent.account_users.find_by(account: account)
+
+    create(:agent_availability_schedule, account_user: account_user, day_of_week: 1, start_minutes: 540, end_minutes: 600)
+    create(:agent_availability_schedule, account_user: account_user, day_of_week: 1, start_minutes: 600, end_minutes: 660)
+
+    expect(described_class.new(account, Time.zone.parse('2026-07-13 10:00:00 UTC')).perform.map(&:user)).to include(adjacent_agent)
+  end
 end

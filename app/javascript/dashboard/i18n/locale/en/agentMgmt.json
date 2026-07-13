@@ -15,7 +15,7 @@
       "404": "There are no agents associated to this account",
       "TITLE": "Manage agents in your team",
       "DESC": "You can add/remove agents to/in your team.",
-      "AVAILABLE_CUSTOM_ROLE": "Available custom role permissions",
+      "AVAILABLE_AGENT_ROLE": "Available role permissions",
       "NAME": "Name",
       "EMAIL": "EMAIL",
       "STATUS": "Status",
@@ -96,6 +96,43 @@
         "ADMIN_SUCCESS_MESSAGE": "An email with reset password instructions has been sent to the agent",
         "SUCCESS_MESSAGE": "Agent password reset successfully",
         "ERROR_MESSAGE": "Could not connect to Woot Server, Please try again later"
+      }
+    },
+    "SCHEDULE": {
+      "TITLE": "Edit schedule for {name}",
+      "DESCRIPTION": "Set the weekly availability windows for this agent.",
+      "BUTTON_TEXT": "Edit schedule",
+      "LOADING": "Loading schedule",
+      "TIMEZONE_LABEL": "Timezone",
+      "TIMEZONE_PLACEHOLDER": "Select timezone",
+      "DAY_HELP": "Add one or more availability ranges for this day.",
+      "UNAVAILABLE": "No availability ranges configured for this day.",
+      "ADD_RANGE": "Add range",
+      "REMOVE_RANGE": "Remove range",
+      "FROM": "From",
+      "TO": "To",
+      "FROM_LABEL": "Start time for {day} range {index}",
+      "TO_LABEL": "End time for {day} range {index}",
+      "CANCEL": "Cancel",
+      "SAVE": "Save schedule",
+      "DAYS": {
+        "SUNDAY": "Sunday",
+        "MONDAY": "Monday",
+        "TUESDAY": "Tuesday",
+        "WEDNESDAY": "Wednesday",
+        "THURSDAY": "Thursday",
+        "FRIDAY": "Friday",
+        "SATURDAY": "Saturday"
+      },
+      "ERRORS": {
+        "MISSING_TIME": "Each range needs a start and end time.",
+        "INVALID_ORDER": "End time must be after the start time.",
+        "OVERLAP": "Ranges on the same day cannot overlap."
+      },
+      "API": {
+        "SUCCESS_MESSAGE": "Schedule updated successfully",
+        "ERROR_MESSAGE": "Could not update the schedule. Please try again.",
+        "LOAD_ERROR": "Could not load the schedule. Please try again."
       }
     },
     "SEARCH_PLACEHOLDER": "Search agents...",

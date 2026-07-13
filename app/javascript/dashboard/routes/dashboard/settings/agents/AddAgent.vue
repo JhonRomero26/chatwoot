@@ -30,8 +30,8 @@ const v$ = useVuelidate(rules, {
 });
 
 const uiFlags = useMapGetter('agents/getUIFlags');
-const getCustomRoles = useMapGetter('customRole/getCustomRoles');
-const roles = computed(() => buildAgentRoles(t, getCustomRoles.value));
+const getAgentRoles = useMapGetter('agentRoles/getAgentRoles');
+const roles = computed(() => buildAgentRoles(t, getAgentRoles.value));
 
 const addAgent = async () => {
   v$.value.$touch();

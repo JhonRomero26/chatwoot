@@ -6,15 +6,20 @@ RSpec.describe ConversationPolicy, type: :policy do
   let(:account) { create(:account) }
   let(:administrator) { create(:user, account: account, role: :administrator) }
   let(:agent) { create(:user, account: account, role: :agent) }
-  let(:supervisor) { create(:user, account: account, role: :agent) }
+  let(:conversation_manager) { create(:user, account: account, role: :agent) }
+  let(:report_manager) { create(:user, account: account, role: :agent) }
+  let(:conversation_manager_role) { create(:agent_role, account: account, permissions: ['conversation_manage']) }
+  let(:report_manager_role) { create(:agent_role, account: account, permissions: ['report_manage']) }
   let(:administrator_context) { { user: administrator, account: account, account_user: administrator.account_users.find_by(account: account) } }
   let(:agent_context) { { user: agent, account: account, account_user: agent.account_users.find_by(account: account) } }
-  let(:supervisor_context) { { user: supervisor, account: account, account_user: supervisor.account_users.find_by(account: account) } }
+  let(:conversation_manager_context) { { user: conversation_manager, account: account, account_user: conversation_manager.account_users.find_by(account: account) } }
+  let(:report_manager_context) { { user: report_manager, account: account, account_user: report_manager.account_users.find_by(account: account) } }
 
   let(:conversation) { create(:conversation, account: account) }
 
   before do
-    supervisor.account_users.find_by(account: account).update!(supervisor: true)
+    conversation_manager.account_users.find_by(account: account).update!(agent_role: conversation_manager_role)
+    report_manager.account_users.find_by(account: account).update!(agent_role: report_manager_role)
   end
 
   permissions :destroy? do
@@ -80,12 +85,21 @@ RSpec.describe ConversationPolicy, type: :policy do
       end
     end
 
-    context 'when user is a supervisor' do
+    context 'when user has conversation_manage permission' do
       let(:inbox) { create(:inbox, account: account) }
       let(:conversation) { create(:conversation, account: account, inbox: inbox, assignee: create(:user, account: account, role: :agent)) }
 
       it 'allows access' do
-        expect(subject).to permit(supervisor_context, conversation)
+        expect(subject).to permit(conversation_manager_context, conversation)
+      end
+    end
+
+    context 'when user only has report_manage permission' do
+      let(:inbox) { create(:inbox, account: account) }
+      let(:conversation) { create(:conversation, account: account, inbox: inbox, assignee: create(:user, account: account, role: :agent)) }
+
+      it 'denies access' do
+        expect(subject).not_to permit(report_manager_context, conversation)
       end
     end
 

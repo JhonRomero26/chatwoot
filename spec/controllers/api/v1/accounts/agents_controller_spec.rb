@@ -6,6 +6,7 @@ RSpec.describe 'Agents API', type: :request do
   let(:account) { create(:account) }
   let!(:admin) { create(:user, custom_attributes: { test: 'test' }, account: account, role: :administrator) }
   let!(:agent) { create(:user, account: account, email: 'exists@example.com', role: :agent) }
+  let!(:conversation_manager_role) { create(:agent_role, account: account, name: 'Supervisor', permissions: ['conversation_manage']) }
 
   describe 'GET /api/v1/accounts/{account.id}/agents' do
     context 'when it is an unauthenticated user' do
@@ -29,8 +30,8 @@ RSpec.describe 'Agents API', type: :request do
         expect(response.parsed_body.size).to eq(account.users.count)
       end
 
-      it 'includes the supervisor flag in the response' do
-        agent.account_users.find_by(account: account).update!(supervisor: true)
+      it 'includes the fork-owned agent role in the response' do
+        agent.account_users.find_by(account: account).update!(agent_role: conversation_manager_role)
 
         get "/api/v1/accounts/#{account.id}/agents",
             headers: agent.create_new_auth_token,
@@ -38,7 +39,10 @@ RSpec.describe 'Agents API', type: :request do
 
         expect(response).to have_http_status(:success)
         response_agent = response.parsed_body.find { |entry| entry['id'] == agent.id }
-        expect(response_agent).to include('supervisor' => true)
+        expect(response_agent).to include(
+          'agent_role_id' => conversation_manager_role.id,
+          'agent_role' => include('name' => 'Supervisor', 'permissions' => ['conversation_manage'])
+        )
       end
 
       it 'returns custom fields on agents if present' do
@@ -150,24 +154,24 @@ RSpec.describe 'Agents API', type: :request do
         expect(response_data['role']).to eq('administrator')
         expect(response_data['availability_status']).to eq('busy')
         expect(response_data['auto_offline']).to be(false)
-        expect(response_data['supervisor']).to be(false)
+        expect(response_data['agent_role_id']).to be_nil
         expect(other_agent.account_users.first.role).to eq('administrator')
       end
 
-      it 'persists supervisor mapping for agents' do
+      it 'assigns a fork-owned agent role for agents' do
         put "/api/v1/accounts/#{account.id}/agents/#{other_agent.id}",
-            params: { role: 'agent', supervisor: true },
+            params: { role: 'agent', agent_role_id: conversation_manager_role.id },
             headers: admin.create_new_auth_token,
             as: :json
 
         expect(response).to have_http_status(:success)
         expect(response.parsed_body['role']).to eq('agent')
-        expect(response.parsed_body['supervisor']).to be(true)
-        expect(other_agent.account_users.first.reload.supervisor).to be(true)
+        expect(response.parsed_body['agent_role_id']).to eq(conversation_manager_role.id)
+        expect(other_agent.account_users.first.reload.agent_role_id).to eq(conversation_manager_role.id)
       end
 
-      it 'keeps supervisor unchanged when the update omits that field' do
-        other_agent.account_users.first.update!(supervisor: true)
+      it 'keeps the agent role unchanged when the update omits that field' do
+        other_agent.account_users.first.update!(agent_role: conversation_manager_role)
 
         put "/api/v1/accounts/#{account.id}/agents/#{other_agent.id}",
             params: { name: 'Renamed Agent', availability: 'busy' },
@@ -175,8 +179,33 @@ RSpec.describe 'Agents API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
-        expect(response.parsed_body['supervisor']).to be(true)
-        expect(other_agent.account_users.first.reload.supervisor).to be(true)
+        expect(response.parsed_body['agent_role_id']).to eq(conversation_manager_role.id)
+        expect(other_agent.account_users.first.reload.agent_role_id).to eq(conversation_manager_role.id)
+      end
+
+      it 'rejects an agent role from another account' do
+        foreign_role = create(:agent_role)
+
+        put "/api/v1/accounts/#{account.id}/agents/#{other_agent.id}",
+            params: { role: 'agent', agent_role_id: foreign_role.id },
+            headers: admin.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'clears a leftover custom_role_id when a fork-owned agent role is assigned' do
+        custom_role = create(:custom_role, account: account)
+        other_agent.account_users.first.update_column(:custom_role_id, custom_role.id) # rubocop:disable Rails/SkipsModelValidations
+
+        put "/api/v1/accounts/#{account.id}/agents/#{other_agent.id}",
+            params: { role: 'agent', agent_role_id: conversation_manager_role.id },
+            headers: admin.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(other_agent.account_users.first.reload.custom_role_id).to be_nil
+        expect(other_agent.account_users.first.agent_role_id).to eq(conversation_manager_role.id)
       end
     end
   end
@@ -216,16 +245,27 @@ RSpec.describe 'Agents API', type: :request do
         expect(account.users.last.name).to eq('NewUser')
       end
 
-      it 'creates a supervisor without changing the core role enum' do
+      it 'creates an agent with a fork-owned role without changing the core role enum' do
         post "/api/v1/accounts/#{account.id}/agents",
-             params: params.merge(supervisor: true),
+             params: params.merge(agent_role_id: conversation_manager_role.id),
              headers: admin.create_new_auth_token,
              as: :json
 
         expect(response).to have_http_status(:success)
         expect(response.parsed_body['role']).to eq('agent')
-        expect(response.parsed_body['supervisor']).to be(true)
-        expect(account.users.last.account_users.first.supervisor).to be(true)
+        expect(response.parsed_body['agent_role_id']).to eq(conversation_manager_role.id)
+        expect(account.users.last.account_users.first.agent_role_id).to eq(conversation_manager_role.id)
+      end
+
+      it 'rejects a fork-owned role from another account during create' do
+        foreign_role = create(:agent_role)
+
+        post "/api/v1/accounts/#{account.id}/agents",
+             params: params.merge(agent_role_id: foreign_role.id),
+             headers: admin.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:not_found)
       end
     end
   end

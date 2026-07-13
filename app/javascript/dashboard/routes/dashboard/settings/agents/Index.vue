@@ -4,14 +4,11 @@ import { computed, onMounted, ref } from 'vue';
 import Avatar from 'next/avatar/Avatar.vue';
 import { useI18n } from 'vue-i18n';
 import { picoSearch } from '@scmmishra/pico-search';
-import {
-  useStoreGetters,
-  useStore,
-  useMapGetter,
-} from 'dashboard/composables/store';
+import { useStoreGetters, useStore } from 'dashboard/composables/store';
 
 import AddAgent from './AddAgent.vue';
 import EditAgent from './EditAgent.vue';
+import EditAvailabilitySchedule from './EditAvailabilitySchedule.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -25,6 +22,7 @@ const loading = ref({});
 const showAddPopup = ref(false);
 const showDeletePopup = ref(false);
 const showEditPopup = ref(false);
+const showSchedulePopup = ref(false);
 const agentAPI = ref({ message: '' });
 const currentAgent = ref({});
 const searchQuery = ref('');
@@ -49,18 +47,21 @@ const filteredAgentList = computed(() => {
 
 const uiFlags = computed(() => getters['agents/getUIFlags'].value);
 const currentUserId = computed(() => getters.getCurrentUserID.value);
-const customRoles = useMapGetter('customRole/getCustomRoles');
 onMounted(() => {
   store.dispatch('agents/get');
-  store.dispatch('customRole/getCustomRole');
+  store.dispatch('agentRoles/getAgentRoles');
 });
 
 const getAgentRoleName = agent => {
-  return agentRoleLabel(agent, t, customRoles.value);
+  return agentRoleLabel(agent, t);
 };
 
 const getAgentRolePermissions = agent => {
-  return agentRolePermissions(agent, customRoles.value);
+  return agentRolePermissions(agent);
+};
+
+const getPermissionLabel = permission => {
+  return t(`CUSTOM_ROLE.PERMISSIONS.${permission.toUpperCase()}`);
 };
 
 const verifiedAdministrators = computed(() => {
@@ -108,6 +109,14 @@ const openEditPopup = agent => {
 };
 const hideEditPopup = () => {
   showEditPopup.value = false;
+};
+
+const openSchedulePopup = agent => {
+  showSchedulePopup.value = true;
+  currentAgent.value = agent;
+};
+const hideSchedulePopup = () => {
+  showSchedulePopup.value = false;
 };
 
 const openDeletePopup = agent => {
@@ -197,19 +206,21 @@ const confirmDeletion = () => {
                   class="block w-fit text-body-main text-n-slate-11 relative"
                   :class="{
                     'hover:text-n-slate-12 group cursor-pointer':
-                      agent.custom_role_id,
+                      getAgentRolePermissions(agent).length,
                   }"
                 >
                   {{ getAgentRoleName(agent) }}
 
                   <div
-                    class="absolute ltr:left-0 rtl:right-0 z-10 hidden w-[300px] bg-n-alpha-3 backdrop-blur-[100px] rounded-xl outline outline-1 outline-n-container shadow-lg
-                      top-14 md:top-12"
-                    :class="{ 'group-hover:block': agent.custom_role_id }"
+                    class="absolute ltr:left-0 rtl:right-0 z-10 hidden w-[300px] bg-n-alpha-3 backdrop-blur-[100px] rounded-xl outline outline-1 outline-n-container shadow-lg top-14 md:top-12"
+                    :class="{
+                      'group-hover:block':
+                        getAgentRolePermissions(agent).length,
+                    }"
                   >
                     <div class="flex flex-col gap-1 p-4">
                       <span class="text-heading-3 text-n-slate-12">
-                        {{ $t('AGENT_MGMT.LIST.AVAILABLE_CUSTOM_ROLE') }}
+                        {{ $t('AGENT_MGMT.LIST.AVAILABLE_AGENT_ROLE') }}
                       </span>
                       <ul class="ltr:pl-4 rtl:pr-4 mb-0 list-disc">
                         <li
@@ -217,11 +228,7 @@ const confirmDeletion = () => {
                           :key="permission"
                           class="text-body-main text-n-slate-11"
                         >
-                          {{
-                            $t(
-                              `CUSTOM_ROLE.PERMISSIONS.${permission.toUpperCase()}`
-                            )
-                          }}
+                          {{ getPermissionLabel(permission) }}
                         </li>
                       </ul>
                     </div>
@@ -244,6 +251,14 @@ const confirmDeletion = () => {
             </div>
           </div>
           <div class="flex justify-end gap-3">
+            <Button
+              v-if="showEditAction(agent)"
+              v-tooltip.top="$t('AGENT_MGMT.SCHEDULE.BUTTON_TEXT')"
+              icon="i-lucide-calendar-clock"
+              slate
+              sm
+              @click="openSchedulePopup(agent)"
+            />
             <Button
               v-if="showEditAction(agent)"
               v-tooltip.top="$t('AGENT_MGMT.EDIT.BUTTON_TEXT')"
@@ -281,8 +296,18 @@ const confirmDeletion = () => {
         :email="currentAgent.email"
         :availability="currentAgent.availability_status"
         :custom-role-id="currentAgent.custom_role_id"
-        :supervisor="currentAgent.supervisor"
+        :custom-role="currentAgent.custom_role"
+        :agent-role-id-value="currentAgent.agent_role_id"
         @close="hideEditPopup"
+      />
+    </woot-modal>
+
+    <woot-modal v-model:show="showSchedulePopup" :on-close="hideSchedulePopup">
+      <EditAvailabilitySchedule
+        v-if="showSchedulePopup"
+        :id="currentAgent.id"
+        :name="currentAgent.name"
+        @close="hideSchedulePopup"
       />
     </woot-modal>
 

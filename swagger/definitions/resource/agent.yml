@@ -31,9 +31,11 @@ properties:
     type: string
     enum: ['agent', 'administrator']
     description: The role of the agent
-  supervisor:
-    type: boolean
-    description: Whether the agent has supervisor visibility permissions
+  agent_role_id:
+    type:
+      - integer
+      - 'null'
+    description: The fork-owned agent role id assigned to the agent
   thumbnail:
     type: string
     description: The thumbnail of the agent

@@ -7,13 +7,14 @@ describe ActionCableListener do
   let!(:agent) { create(:user, account: account, role: :agent) }
   let!(:supervisor) { create(:user, account: account, role: :agent) }
   let!(:other_agent) { create(:user, account: account, role: :agent) }
+  let!(:conversation_manager_role) { create(:agent_role, account: account, permissions: ['conversation_manage']) }
   let!(:conversation) { create(:conversation, account: account, inbox: inbox, assignee: agent) }
 
   before do
     create(:inbox_member, inbox: inbox, user: agent)
     create(:inbox_member, inbox: inbox, user: supervisor)
     create(:inbox_member, inbox: inbox, user: other_agent)
-    supervisor.account_users.find_by(account: account).update!(supervisor: true)
+    supervisor.account_users.find_by(account: account).update!(agent_role: conversation_manager_role)
     Current.user = nil
     Current.account = nil
   end
