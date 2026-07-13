@@ -59,6 +59,8 @@ Rails.application.routes.draw do
             get :help_center_generation
           end
           resources :agents, only: [:index, :create, :update, :destroy] do
+            get :available, on: :collection
+            match :availability_schedule, on: :member, via: [:get, :put]
             post :bulk_create, on: :collection
           end
           namespace :captain do

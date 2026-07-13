@@ -19,13 +19,13 @@
 #   git config merge.railsschema.driver "ruby bin/schema_merge_driver %O %A %B"
 # .gitattributes wires db/schema.rb to the `railsschema` driver name.
 
+require 'English'
+
 ancestor, ours, theirs = ARGV
 
-system('git', 'merge-file', '--diff3', ours, ancestor, theirs)
+system('git', 'merge-file', ours, ancestor, theirs)
 status = $CHILD_STATUS.exitstatus
 exit(0) if status.zero?
-
-require 'English'
 
 content = File.read(ours)
 version_line = /ActiveRecord::Schema\[[\d.]+\]\.define\(version: ([\d_]+)\)/

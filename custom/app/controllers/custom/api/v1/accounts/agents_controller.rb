@@ -1,6 +1,28 @@
 # frozen_string_literal: true
 
 module Custom::Api::V1::Accounts::AgentsController
+  def self.prepended(base)
+    base.skip_before_action :fetch_agent, only: :available
+  end
+
+  def available
+    @agents = AgentAvailabilityFinder.new(Current.account).perform
+  end
+
+  def availability_schedule
+    if request.put?
+      ActiveRecord::Base.transaction do
+        AgentAvailabilitySchedule.where(account_user: target_account_user).delete_all
+        permitted_schedule_rows.each do |row|
+          AgentAvailabilitySchedule.create!(row.merge(account_user: target_account_user))
+        end
+      end
+    end
+
+    @schedule_rows = weekly_schedule_rows
+    render :availability_schedule if request.put?
+  end
+
   def create
     super
     sync_supervisor!(@agent.current_account_user, new_agent_params)
@@ -12,6 +34,17 @@ module Custom::Api::V1::Accounts::AgentsController
   end
 
   private
+
+  def check_authorization
+    return authorize(User, :index?) if action_name == 'available'
+    if schedule_action?
+      raise Pundit::NotAuthorizedError unless can_manage_availability_schedule?
+
+      return
+    end
+
+    super
+  end
 
   def account_user_attributes
     super + [:supervisor]
@@ -35,5 +68,42 @@ module Custom::Api::V1::Accounts::AgentsController
 
     supervisor = ActiveModel::Type::Boolean.new.cast(permitted_params[:supervisor])
     account_user.update!(supervisor: supervisor)
+  end
+
+  def schedule_action?
+    action_name == 'availability_schedule'
+  end
+
+  def can_manage_availability_schedule?
+    Current.account_user.administrator? || Current.account_user.supervisor?
+  end
+
+  def target_account_user
+    @target_account_user ||= Current.account.account_users.find_by!(user_id: @agent.id)
+  end
+
+  def weekly_schedule_rows
+    rows = AgentAvailabilitySchedule.where(account_user: target_account_user).index_by(&:day_of_week)
+
+    (0..6).map do |day_of_week|
+      rows[day_of_week] || AgentAvailabilitySchedule.new(account_user: target_account_user, day_of_week: day_of_week, timezone: default_schedule_timezone)
+    end
+  end
+
+  def default_schedule_timezone
+    target_account_user.account.reporting_timezone.presence || 'UTC'
+  end
+
+  def permitted_schedule_rows
+    params.require(:weekly_schedule).map do |row|
+      row.permit(
+        :day_of_week,
+        :timezone,
+        :morning_start_minutes,
+        :morning_end_minutes,
+        :afternoon_start_minutes,
+        :afternoon_end_minutes
+      ).to_h
+    end
   end
 end

@@ -115,6 +115,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_184351) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "agent_availability_schedules", force: :cascade do |t|
+    t.bigint "account_user_id", null: false
+    t.integer "day_of_week", null: false
+    t.integer "start_minutes", null: false
+    t.integer "end_minutes", null: false
+    t.string "timezone", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_user_id", "day_of_week", "start_minutes", "end_minutes"], name: "index_agent_availability_schedules_on_account_user_day_range", unique: true
+    t.index ["account_user_id", "day_of_week"], name: "index_agent_availability_schedules_on_account_user_and_day"
+    t.index ["account_user_id"], name: "index_agent_availability_schedules_on_account_user_id"
+  end
+
   create_table "agent_bot_inboxes", force: :cascade do |t|
     t.integer "inbox_id"
     t.integer "agent_bot_id"
@@ -1493,6 +1506,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_184351) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_availability_schedules", "account_users", on_delete: :cascade
   add_foreign_key "inboxes", "portals"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
