@@ -11,14 +11,10 @@ import {
   timeSlotTransform,
   defaultTimeSlot,
   timeZoneOptions,
+  DEFAULT_TIMEZONE,
 } from '../helpers/businessHour';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
-
-const DEFAULT_TIMEZONE = {
-  label: 'Pacific Time (US & Canada) (GMT-07:00)',
-  value: 'America/Los_Angeles',
-};
 
 export default {
   components: {

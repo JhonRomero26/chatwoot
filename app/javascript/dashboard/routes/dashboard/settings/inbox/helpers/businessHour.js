@@ -147,3 +147,18 @@ export const timeZoneOptions = () => {
     value: timeZoneData[key],
   }));
 };
+
+export const DEFAULT_TIMEZONE = {
+  label: 'Pacific Time (US & Canada) (GMT-07:00)',
+  value: 'America/Los_Angeles',
+};
+
+export const groupTimeSlotsByPeriod = slots =>
+  ['AM', 'PM']
+    .map(period => ({
+      label: period,
+      options: slots
+        .filter(s => s.endsWith(period))
+        .map(s => ({ value: s, label: s })),
+    }))
+    .filter(g => g.options.length);

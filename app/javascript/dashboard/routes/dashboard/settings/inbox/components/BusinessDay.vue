@@ -1,21 +1,14 @@
 <script>
 import parse from 'date-fns/parse';
 import differenceInMinutes from 'date-fns/differenceInMinutes';
-import { generateTimeSlots } from '../helpers/businessHour';
+import {
+  generateTimeSlots,
+  groupTimeSlotsByPeriod,
+} from '../helpers/businessHour';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import NextSelect from 'dashboard/components-next/select/Select.vue';
 
 const timeSlots = generateTimeSlots(30);
-
-const groupByPeriod = slots =>
-  ['AM', 'PM']
-    .map(period => ({
-      label: period,
-      options: slots
-        .filter(s => s.endsWith(period))
-        .map(s => ({ value: s, label: s })),
-    }))
-    .filter(g => g.options.length);
 
 export default {
   components: {
@@ -38,10 +31,12 @@ export default {
   emits: ['update'],
   computed: {
     fromTimeSlots() {
-      return groupByPeriod(timeSlots);
+      return groupTimeSlotsByPeriod(timeSlots);
     },
     toTimeSlots() {
-      return groupByPeriod(timeSlots.filter(slot => slot !== '12:00 AM'));
+      return groupTimeSlotsByPeriod(
+        timeSlots.filter(slot => slot !== '12:00 AM')
+      );
     },
     isDayEnabled: {
       get() {
