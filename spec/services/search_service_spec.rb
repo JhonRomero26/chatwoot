@@ -6,9 +6,12 @@ describe SearchService do
   let(:search_type) { 'all' }
   let!(:account) { create(:account) }
   let!(:user) { create(:user, account: account) }
+  let!(:supervisor_user) { create(:user, account: account) }
   let!(:inbox) { create(:inbox, account: account, enable_auto_assignment: false) }
   let!(:harry) { create(:contact, name: 'Harry Potter', email: 'test@test.com', account_id: account.id) }
-  let!(:conversation) { create(:conversation, contact: harry, inbox: inbox, account: account) }
+  let!(:conversation) { create(:conversation, contact: harry, inbox: inbox, account: account, assignee: user) }
+  let!(:unassigned_conversation) { create(:conversation, contact: harry, inbox: inbox, account: account, assignee: nil) }
+  let!(:other_assigned_conversation) { create(:conversation, contact: harry, inbox: inbox, account: account, assignee: supervisor_user) }
   let!(:message) { create(:message, account: account, inbox: inbox, content: 'Harry Potter is a wizard') }
   let!(:portal) { create(:portal, account: account) }
   let(:article) do
@@ -18,6 +21,8 @@ describe SearchService do
 
   before do
     create(:inbox_member, user: user, inbox: inbox)
+    create(:inbox_member, user: supervisor_user, inbox: inbox)
+    supervisor_user.account_users.find_by(account: account).update!(supervisor: true)
     Current.account = account
   end
 
@@ -246,18 +251,23 @@ describe SearchService do
         # random messages in another inbox
         random = create(:contact, account_id: account.id)
         create(:conversation, contact: random, inbox: inbox, account: account)
-        conv2 = create(:conversation, contact: harry, inbox: inbox, account: account)
+        conv2 = create(:conversation, contact: harry, inbox: inbox, account: account, assignee: nil)
         params = { q: 'Harry' }
         search = described_class.new(current_user: user, current_account: account, params: params, search_type: 'Conversation')
-        expect(search.perform[:conversations].map(&:id)).to eq([conv2.id, conversation.id])
+        expect(search.perform[:conversations].map(&:id)).to eq([conv2.id, unassigned_conversation.id, conversation.id])
       end
 
       it 'searches across conversations with display id' do
-        random = create(:contact, account_id: account.id, name: 'random', email: 'random@random.test', identifier: 'random')
-        new_converstion = create(:conversation, contact: random, inbox: inbox, account: account)
-        params = { q: new_converstion.display_id }
+        params = { q: other_assigned_conversation.display_id }
         search = described_class.new(current_user: user, current_account: account, params: params, search_type: 'Conversation')
-        expect(search.perform[:conversations].map(&:id)).to include new_converstion.id
+        expect(search.perform[:conversations]).to be_empty
+      end
+
+      it 'lets supervisors search every conversation' do
+        params = { q: other_assigned_conversation.display_id }
+        search = described_class.new(current_user: supervisor_user, current_account: account, params: params, search_type: 'Conversation')
+
+        expect(search.perform[:conversations].map(&:id)).to include(other_assigned_conversation.id)
       end
     end
 

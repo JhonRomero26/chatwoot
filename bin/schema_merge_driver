@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Git merge driver for db/schema.rb (and db/*_structure.sql-style version headers).
+#
+# db/schema.rb conflicts almost every time both branches add migrations, but the
+# only line that actually differs is the `version:` header — the rest of the file
+# is derived, generated state. This driver runs the normal 3-way merge first; if
+# the ONLY conflict is that version line, it keeps the higher timestamp instead of
+# stopping the rebase/merge. Any other conflict (a real structural collision) is
+# left with standard conflict markers for a human to resolve.
+#
+# ponytail: only understands the `ActiveRecord::Schema[...].define(version: N)`
+# line shape. If Rails ever changes that header format, this falls back safely to
+# a normal conflict (exit code from git merge-file is preserved).
+#
+# Setup (per clone, not shared via git):
+#   git config merge.railsschema.name "Rails schema version-only auto-merge"
+#   git config merge.railsschema.driver "ruby bin/schema_merge_driver %O %A %B"
+# .gitattributes wires db/schema.rb to the `railsschema` driver name.
+
+ancestor, ours, theirs = ARGV
+
+system('git', 'merge-file', '--diff3', ours, ancestor, theirs)
+status = $CHILD_STATUS.exitstatus
+exit(0) if status.zero?
+
+require 'English'
+
+content = File.read(ours)
+version_line = /ActiveRecord::Schema\[[\d.]+\]\.define\(version: ([\d_]+)\)/
+
+conflict = content.match(/^<{7} .*\n(.*\n)+?^={7}\n(.*\n)+?^>{7} .*\n/)
+exit(status) unless conflict
+
+hunk = conflict[0]
+versions = hunk.scan(version_line).flatten
+exit(status) unless versions.size == 2
+
+# Anything besides the version line inside the conflict hunk means a real
+# structural collision — bail out and let a human look at it.
+non_version_lines = hunk.lines.reject do |line|
+  line.match?(/^[<=>]{7}/) || line.match?(version_line)
+end
+exit(status) unless non_version_lines.all? { |l| l.strip.empty? }
+
+winner = versions.max_by(&:to_i)
+replacement = hunk.lines.find { |l| l.match?(version_line) && l.include?(winner) }
+content.sub!(hunk, replacement)
+File.write(ours, content)
+exit(0)

@@ -50,6 +50,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_13_184351) do
     t.datetime "active_at", precision: nil
     t.integer "availability", default: 0, null: false
     t.boolean "auto_offline", default: true, null: false
+    t.boolean "supervisor", default: false, null: false
     t.bigint "custom_role_id"
     t.bigint "agent_capacity_policy_id"
     t.index ["account_id", "user_id"], name: "uniq_user_id_per_account_id", unique: true

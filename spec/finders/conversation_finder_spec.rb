@@ -290,5 +290,20 @@ describe ConversationFinder do
         expect(result[:conversations].length).to be 2
       end
     end
+
+    context 'with participating for a normal agent' do
+      let(:params) { { status: 'all', conversation_type: 'participating' } }
+
+      it 'does not leak another agents assigned conversation through participant membership' do
+        visible_participating = create(:conversation, account: account, inbox: inbox, assignee: user_1)
+        hidden_participating = create(:conversation, account: account, inbox: inbox, assignee: user_2)
+        create(:conversation_participant, account: account, conversation: visible_participating, user: user_1)
+        create(:conversation_participant, account: account, conversation: hidden_participating, user: user_1)
+
+        result = conversation_finder.perform
+
+        expect(result[:conversations]).to contain_exactly(visible_participating)
+      end
+    end
   end
 end

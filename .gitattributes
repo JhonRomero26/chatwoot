@@ -1,0 +1,10 @@
+# db/schema.rb conflicts almost every time both branches add migrations, but
+# only the `version:` header actually differs — the rest is generated state.
+# The `railsschema` merge driver (bin/schema_merge_driver) auto-resolves that
+# specific case and falls back to normal conflict markers for anything else.
+#
+# One-time setup per clone (not shared via git, must be run again after a fresh
+# clone/worktree):
+#   git config merge.railsschema.name "Rails schema version-only auto-merge"
+#   git config merge.railsschema.driver "ruby bin/schema_merge_driver %O %A %B"
+db/schema.rb merge=railsschema

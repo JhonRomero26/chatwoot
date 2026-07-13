@@ -6,6 +6,7 @@ import { useAlert } from 'dashboard/composables';
 import { useVuelidate } from '@vuelidate/core';
 import { required, email } from '@vuelidate/validators';
 import Button from 'dashboard/components-next/button/Button.vue';
+import { buildAgentRoles, agentRolePayload } from './agentRole';
 
 const emit = defineEmits(['close']);
 
@@ -30,36 +31,7 @@ const v$ = useVuelidate(rules, {
 
 const uiFlags = useMapGetter('agents/getUIFlags');
 const getCustomRoles = useMapGetter('customRole/getCustomRoles');
-
-const roles = computed(() => {
-  const defaultRoles = [
-    {
-      id: 'administrator',
-      name: 'administrator',
-      label: t('AGENT_MGMT.AGENT_TYPES.ADMINISTRATOR'),
-    },
-    {
-      id: 'agent',
-      name: 'agent',
-      label: t('AGENT_MGMT.AGENT_TYPES.AGENT'),
-    },
-  ];
-
-  const customRoles = getCustomRoles.value.map(role => ({
-    id: role.id,
-    name: `custom_${role.id}`,
-    label: role.name,
-  }));
-
-  return [...defaultRoles, ...customRoles];
-});
-
-const selectedRole = computed(() =>
-  roles.value.find(
-    role =>
-      role.id === selectedRoleId.value || role.name === selectedRoleId.value
-  )
-);
+const roles = computed(() => buildAgentRoles(t, getCustomRoles.value));
 
 const addAgent = async () => {
   v$.value.$touch();
@@ -69,13 +41,8 @@ const addAgent = async () => {
     const payload = {
       name: agentName.value,
       email: agentEmail.value,
+      ...agentRolePayload(selectedRoleId.value),
     };
-
-    if (selectedRole.value.name.startsWith('custom_')) {
-      payload.custom_role_id = selectedRole.value.id;
-    } else {
-      payload.role = selectedRole.value.name;
-    }
 
     await store.dispatch('agents/create', payload);
     useAlert(t('AGENT_MGMT.ADD.API.SUCCESS_MESSAGE'));

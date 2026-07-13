@@ -3,6 +3,7 @@
 require_relative 'boot'
 
 require 'rails/all'
+require_relative '../lib/chatwoot_app'
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -47,6 +48,36 @@ module Chatwoot
     # rubocop:enable Rails/FilePath
     # Add enterprise views to the view paths
     config.paths['app/views'].unshift('enterprise/app/views')
+
+    if ChatwootApp.custom?
+      # Mirrors enterprise/lib/enterprise.rb: eager-load the explicit Custom
+      # namespace module early so it exists before any prepend_mod_with call
+      # runs. Without this, Object.const_defined?('Custom', false) can
+      # return false during early class loads (Zeitwerk's implicit
+      # namespace for custom/app/** is only created once something inside
+      # it is autoloaded, which can be too late).
+      config.eager_load_paths << Rails.root.join('custom/lib')
+      # Mirrors enterprise/app/**: a single level under custom/app/ (models,
+      # controllers, services, ...). Each registered root recursively covers
+      # its own nested namespaces (e.g. custom/app/services/custom/... maps
+      # correctly under the custom/app/services root) -- registering deeper
+      # subdirectories separately would create OVERLAPPING roots and make
+      # Zeitwerk expect the wrong (unprefixed) constant name for files under
+      # them.
+      # rubocop:disable Rails/FilePath
+      config.eager_load_paths += Dir["#{Rails.root}/custom/app/**"]
+      # rubocop:enable Rails/FilePath
+      # Rails auto-registers "app/**/concerns" as standalone roots (so a
+      # concern isn't namespaced under Concerns::) only for paths it
+      # discovers itself under app/. Manually-added custom/app/** roots
+      # don't get that treatment automatically, so it's added explicitly.
+      concerns_dir = Rails.root.join('custom/app/models/concerns')
+      config.eager_load_paths << concerns_dir if concerns_dir.exist?
+      config.paths['app/views'].unshift('custom/app/views')
+
+      custom_initializers = Rails.root.join('custom/config/initializers')
+      Dir[custom_initializers.join('**/*.rb')].each { |f| require f } if custom_initializers.exist?
+    end
 
     # Load enterprise initializers alongside standard initializers
     enterprise_initializers = Rails.root.join('enterprise/config/initializers')

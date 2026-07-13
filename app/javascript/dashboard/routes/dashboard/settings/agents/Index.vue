@@ -15,6 +15,7 @@ import EditAgent from './EditAgent.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import { agentRoleLabel, agentRolePermissions } from './agentRole';
 
 const getters = useStoreGetters();
 const store = useStore();
@@ -49,29 +50,17 @@ const filteredAgentList = computed(() => {
 const uiFlags = computed(() => getters['agents/getUIFlags'].value);
 const currentUserId = computed(() => getters.getCurrentUserID.value);
 const customRoles = useMapGetter('customRole/getCustomRoles');
-
 onMounted(() => {
   store.dispatch('agents/get');
   store.dispatch('customRole/getCustomRole');
 });
 
-const findCustomRole = agent =>
-  customRoles.value.find(role => role.id === agent.custom_role_id);
-
 const getAgentRoleName = agent => {
-  if (!agent.custom_role_id) {
-    return t(`AGENT_MGMT.AGENT_TYPES.${agent.role.toUpperCase()}`);
-  }
-  const customRole = findCustomRole(agent);
-  return customRole ? customRole.name : '';
+  return agentRoleLabel(agent, t, customRoles.value);
 };
 
 const getAgentRolePermissions = agent => {
-  if (!agent.custom_role_id) {
-    return [];
-  }
-  const customRole = findCustomRole(agent);
-  return customRole?.permissions || [];
+  return agentRolePermissions(agent, customRoles.value);
 };
 
 const verifiedAdministrators = computed(() => {
@@ -214,7 +203,8 @@ const confirmDeletion = () => {
                   {{ getAgentRoleName(agent) }}
 
                   <div
-                    class="absolute ltr:left-0 rtl:right-0 z-10 hidden w-[300px] bg-n-alpha-3 backdrop-blur-[100px] rounded-xl outline outline-1 outline-n-container shadow-lg top-14 md:top-12"
+                    class="absolute ltr:left-0 rtl:right-0 z-10 hidden w-[300px] bg-n-alpha-3 backdrop-blur-[100px] rounded-xl outline outline-1 outline-n-container shadow-lg
+                      top-14 md:top-12"
                     :class="{ 'group-hover:block': agent.custom_role_id }"
                   >
                     <div class="flex flex-col gap-1 p-4">
@@ -291,6 +281,7 @@ const confirmDeletion = () => {
         :email="currentAgent.email"
         :availability="currentAgent.availability_status"
         :custom-role-id="currentAgent.custom_role_id"
+        :supervisor="currentAgent.supervisor"
         @close="hideEditPopup"
       />
     </woot-modal>

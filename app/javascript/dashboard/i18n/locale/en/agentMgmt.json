@@ -7,6 +7,7 @@
     "LEARN_MORE": "Learn about user roles",
     "AGENT_TYPES": {
       "ADMINISTRATOR": "Administrator",
+      "SUPERVISOR": "Supervisor",
       "AGENT": "Agent"
     },
     "COUNT": "{n} agent | {n} agents",
@@ -14,13 +15,13 @@
       "404": "There are no agents associated to this account",
       "TITLE": "Manage agents in your team",
       "DESC": "You can add/remove agents to/in your team.",
+      "AVAILABLE_CUSTOM_ROLE": "Available custom role permissions",
       "NAME": "Name",
       "EMAIL": "EMAIL",
       "STATUS": "Status",
       "ACTIONS": "Actions",
       "VERIFIED": "Verified",
-      "VERIFICATION_PENDING": "Verification Pending",
-      "AVAILABLE_CUSTOM_ROLE": "Available custom role permissions"
+      "VERIFICATION_PENDING": "Verification Pending"
     },
     "ADD": {
       "TITLE": "Add agent to your team",

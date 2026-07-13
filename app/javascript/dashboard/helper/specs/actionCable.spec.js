@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import ActionCableConnector from '../actionCable';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import types from '../../store/mutation-types';
 
 vi.mock('shared/helpers/mitt', () => ({
   emitter: {
@@ -25,12 +26,15 @@ describe('ActionCableConnector - Copilot Tests', () => {
   let store;
   let actionCable;
   let mockDispatch;
+  let mockCommit;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockDispatch = vi.fn();
+    mockCommit = vi.fn();
     store = {
       $store: {
+        commit: mockCommit,
         dispatch: mockDispatch,
         getters: {
           getCurrentAccountId: 1,
@@ -375,6 +379,19 @@ describe('ActionCableConnector - Copilot Tests', () => {
 
       vi.advanceTimersByTime(4000);
       expect(mockDispatch).toHaveBeenCalledTimes(2);
+    });
+
+    it('removes revoked conversations from the local list on minimal assignee events', () => {
+      actionCable.onReceived({
+        event: 'assignee.changed',
+        data: { id: 99, remove_from_agent_view: true, account_id: 1 },
+      });
+
+      expect(mockCommit).toHaveBeenCalledWith(types.DELETE_CONVERSATION, 99);
+      expect(mockDispatch).not.toHaveBeenCalledWith(
+        'updateConversation',
+        expect.anything()
+      );
     });
   });
 });

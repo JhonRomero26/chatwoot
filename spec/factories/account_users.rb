@@ -5,5 +5,6 @@ FactoryBot.define do
     account
     user
     role { 'agent' }
+    supervisor { false }
   end
 end

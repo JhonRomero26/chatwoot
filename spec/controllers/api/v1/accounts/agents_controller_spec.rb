@@ -29,6 +29,18 @@ RSpec.describe 'Agents API', type: :request do
         expect(response.parsed_body.size).to eq(account.users.count)
       end
 
+      it 'includes the supervisor flag in the response' do
+        agent.account_users.find_by(account: account).update!(supervisor: true)
+
+        get "/api/v1/accounts/#{account.id}/agents",
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        response_agent = response.parsed_body.find { |entry| entry['id'] == agent.id }
+        expect(response_agent).to include('supervisor' => true)
+      end
+
       it 'returns custom fields on agents if present' do
         agent.update(custom_attributes: { test: 'test' })
 
@@ -138,7 +150,33 @@ RSpec.describe 'Agents API', type: :request do
         expect(response_data['role']).to eq('administrator')
         expect(response_data['availability_status']).to eq('busy')
         expect(response_data['auto_offline']).to be(false)
+        expect(response_data['supervisor']).to be(false)
         expect(other_agent.account_users.first.role).to eq('administrator')
+      end
+
+      it 'persists supervisor mapping for agents' do
+        put "/api/v1/accounts/#{account.id}/agents/#{other_agent.id}",
+            params: { role: 'agent', supervisor: true },
+            headers: admin.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['role']).to eq('agent')
+        expect(response.parsed_body['supervisor']).to be(true)
+        expect(other_agent.account_users.first.reload.supervisor).to be(true)
+      end
+
+      it 'keeps supervisor unchanged when the update omits that field' do
+        other_agent.account_users.first.update!(supervisor: true)
+
+        put "/api/v1/accounts/#{account.id}/agents/#{other_agent.id}",
+            params: { name: 'Renamed Agent', availability: 'busy' },
+            headers: admin.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['supervisor']).to be(true)
+        expect(other_agent.account_users.first.reload.supervisor).to be(true)
       end
     end
   end
@@ -176,6 +214,18 @@ RSpec.describe 'Agents API', type: :request do
         expect(response).to conform_schema(200)
         expect(response.parsed_body['email']).to eq(params[:email])
         expect(account.users.last.name).to eq('NewUser')
+      end
+
+      it 'creates a supervisor without changing the core role enum' do
+        post "/api/v1/accounts/#{account.id}/agents",
+             params: params.merge(supervisor: true),
+             headers: admin.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['role']).to eq('agent')
+        expect(response.parsed_body['supervisor']).to be(true)
+        expect(account.users.last.account_users.first.supervisor).to be(true)
       end
     end
   end

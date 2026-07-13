@@ -14,6 +14,7 @@ import {
 import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
 import { VOICE_CALL_DIRECTION } from 'dashboard/components-next/message/constants';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import types from '../store/mutation-types';
 
 const { isImpersonating } = useImpersonation();
 const UNREAD_COUNTS_REFETCH_THROTTLE_MS = 5000;
@@ -104,9 +105,13 @@ class ActionCableConnector extends BaseActionCableConnector {
   };
 
   onAssigneeChanged = payload => {
-    const { id } = payload;
+    const { id, remove_from_agent_view: removeFromAgentView } = payload;
     if (id) {
-      this.app.$store.dispatch('updateConversation', payload);
+      if (removeFromAgentView) {
+        this.app.$store.commit(types.DELETE_CONVERSATION, id);
+      } else {
+        this.app.$store.dispatch('updateConversation', payload);
+      }
     }
     this.fetchConversationStats();
   };

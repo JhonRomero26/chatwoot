@@ -31,6 +31,9 @@ properties:
     type: string
     enum: ['agent', 'administrator']
     description: The role of the agent
+  supervisor:
+    type: boolean
+    description: Whether the agent has supervisor visibility permissions
   thumbnail:
     type: string
     description: The thumbnail of the agent
