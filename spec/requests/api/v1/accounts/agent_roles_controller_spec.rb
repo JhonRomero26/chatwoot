@@ -37,7 +37,7 @@ RSpec.describe 'Agent roles API', type: :request do
     it 'rejects unsupported permissions' do
       post "/api/v1/accounts/#{account.id}/agent_roles",
            headers: admin.create_new_auth_token,
-           params: { agent_role: { name: 'Broken', permissions: ['contact_manage'] } },
+           params: { agent_role: { name: 'Broken', permissions: ['unsupported_permission'] } },
            as: :json
 
       expect(response).to have_http_status(:unprocessable_entity)

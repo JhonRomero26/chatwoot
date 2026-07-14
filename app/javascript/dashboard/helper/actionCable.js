@@ -108,12 +108,42 @@ class ActionCableConnector extends BaseActionCableConnector {
     const { id, remove_from_agent_view: removeFromAgentView } = payload;
     if (id) {
       if (removeFromAgentView) {
-        this.app.$store.commit(types.DELETE_CONVERSATION, id);
+        // ponytail: privilege check guards admins/managers from having their open
+        // view yanked when someone reassigns. Backend skips broadcasting
+        // `remove_from_agent_view: true` for those users; this is the frontend
+        // belt-and-braces guard.
+        if (this.isCurrentUserPrivilegedForConversation()) {
+          this.app.$store.dispatch('updateConversation', payload);
+        } else {
+          this.app.$store.commit(types.DELETE_CONVERSATION, id);
+          this.evictIfActive(id);
+        }
       } else {
         this.app.$store.dispatch('updateConversation', payload);
       }
     }
     this.fetchConversationStats();
+  };
+
+  isCurrentUserPrivilegedForConversation = () => {
+    const accountId = this.app.$store.getters.getCurrentAccountId;
+    const currentUser = this.app.$store.getters.getCurrentUser;
+    if (!currentUser) return false;
+    const account = (currentUser.accounts || []).find(
+      a => Number(a.id) === Number(accountId)
+    );
+    if (!account) return false;
+    if (account.role === 'administrator') return true;
+    return (account.permissions || []).includes('conversation_manage');
+  };
+
+  evictIfActive = conversationId => {
+    const { getters } = this.app.$store;
+    const selectedChat = getters.getSelectedChat;
+    if (!selectedChat || selectedChat.id !== conversationId) return;
+
+    this.app.$store.commit(types.SET_EVICTED_CONVERSATION, conversationId);
+    emitter.emit(BUS_EVENTS.EVICTED_FROM_CONVERSATION, { conversationId });
   };
 
   onConversationCreated = data => {

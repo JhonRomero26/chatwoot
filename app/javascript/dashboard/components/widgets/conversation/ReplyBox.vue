@@ -146,7 +146,14 @@ export default {
       currentUser: 'getCurrentUser',
       lastEmail: 'getLastEmailInSelectedChat',
       globalConfig: 'globalConfig/get',
+      evictedConversationId: 'getEvictedConversationId',
     }),
+    isCurrentUserEvicted() {
+      return (
+        this.evictedConversationId &&
+        Number(this.evictedConversationId) === Number(this.currentChat?.id)
+      );
+    },
     currentContact() {
       const senderId = this.currentChat?.meta?.sender?.id;
       if (!senderId) return {};
@@ -230,6 +237,7 @@ export default {
       return this.maxLength - this.message.length;
     },
     isReplyButtonDisabled() {
+      if (this.isComposerLockedForEviction) return true;
       if (this.isEditorDisabled) return true;
       if (this.isATwitterInbox) return true;
       if (this.hasAttachments || this.hasRecordedAudio) return false;
@@ -452,6 +460,9 @@ export default {
         !this.isOnPrivateNote &&
         !this.currentChat.can_reply
       );
+    },
+    isComposerLockedForEviction() {
+      return this.isCurrentUserEvicted;
     },
   },
   watch: {
@@ -1343,7 +1354,7 @@ export default {
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"
           :min-height="4"
-          :disabled="isEditorDisabled"
+          :disabled="isEditorDisabled || isComposerLockedForEviction"
           enable-variables
           :variables="messageVariables"
           :signature="messageSignature"

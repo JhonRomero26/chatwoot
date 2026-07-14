@@ -883,7 +883,9 @@ const menuItems = computed(() => {
           name: 'Settings Custom Roles',
           label: t('SIDEBAR.CUSTOM_ROLES'),
           icon: 'i-lucide-shield-plus',
-          to: accountScopedRoute('custom_roles_list'),
+          // ponytail: this fork doesn't use Enterprise custom_roles; the
+          // same sidebar slot now opens our own fork-owned agent_roles page.
+          to: accountScopedRoute('agent_roles_list'),
         },
         {
           name: 'Settings Sla',

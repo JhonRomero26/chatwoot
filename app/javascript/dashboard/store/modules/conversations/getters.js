@@ -59,6 +59,8 @@ const getters = {
   },
   getSelectedChatAttachmentsLoaded: ({ selectedChatId, attachments }) =>
     selectedChatId !== null && attachments[selectedChatId] !== undefined,
+  getEvictedConversationId: ({ evictedConversationId }) =>
+    evictedConversationId,
   getChatListFilters: ({ conversationFilters }) => conversationFilters,
   getLastEmailInSelectedChat: (stage, _getters) => {
     const selectedChat = _getters.getSelectedChat;

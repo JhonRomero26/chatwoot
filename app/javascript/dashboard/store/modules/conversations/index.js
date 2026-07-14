@@ -23,6 +23,7 @@ const state = {
   syncConversationsMessages: {},
   conversationFilters: {},
   copilotAssistant: {},
+  evictedConversationId: null,
 };
 
 const getConversationById = _state => conversationId => {
@@ -239,6 +240,14 @@ export const mutations = {
     _state.allConversations = _state.allConversations.filter(
       c => c.id !== conversationId
     );
+  },
+
+  [types.SET_EVICTED_CONVERSATION](_state, conversationId) {
+    _state.evictedConversationId = conversationId;
+  },
+
+  [types.CLEAR_EVICTED_CONVERSATION](_state) {
+    _state.evictedConversationId = null;
   },
 
   [types.UPDATE_CONVERSATION](_state, conversation) {

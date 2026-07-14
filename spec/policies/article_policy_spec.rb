@@ -31,4 +31,16 @@ RSpec.describe ArticlePolicy, type: :policy do
       it { expect(article_policy).not_to permit(agent_context, article) }
     end
   end
+
+  permissions :index?, :update?, :show?, :edit?, :create?, :destroy?, :reorder? do
+    context 'when agent has knowledge_base_manage agent_role permission' do
+      let(:kb_manager) { create(:user, account: account, role: :agent) }
+      let(:kb_manager_role) { create(:agent_role, account: account, permissions: ['knowledge_base_manage']) }
+      let(:kb_manager_context) { { user: kb_manager, account: account, account_user: kb_manager.account_users.find_by(account: account) } }
+
+      before { kb_manager.account_users.find_by(account: account).update!(agent_role: kb_manager_role) }
+
+      it { expect(article_policy).to permit(kb_manager_context, article) }
+    end
+  end
 end

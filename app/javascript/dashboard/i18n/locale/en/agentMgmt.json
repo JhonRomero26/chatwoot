@@ -167,6 +167,75 @@
           "INPUT": "Search for agents"
         }
       }
+    },
+    "ROLES": {
+      "HEADER": "Agent Roles",
+      "DESCRIPTION": "Agent roles define sets of permissions that can be assigned to agents in this account. Use roles to give agents the right access without managing each permission individually.",
+      "LEARN_MORE": "Learn about agent roles",
+      "COUNT": "{n} agent role | {n} agent roles",
+      "HEADER_BTN_TXT": "Add agent role",
+      "LOADING": "Fetching agent roles...",
+      "SEARCH_PLACEHOLDER": "Search agent roles...",
+      "NO_RESULTS": "No agent roles found matching your search",
+      "FORBIDDEN": "Only administrators can manage agent roles.",
+      "LIST": {
+        "404": "There are no agent roles in this account yet.",
+        "TABLE_HEADER": {
+          "NAME": "Name",
+          "PERMISSIONS": "Permissions",
+          "MEMBERS": "Members",
+          "ACTIONS": "Actions"
+        }
+      },
+      "PERMISSIONS": {
+        "NONE": "No permissions",
+        "CONVERSATION_MANAGE_DESC": "Allows the agent to view and manage every conversation in the account, including those assigned to other agents.",
+        "REPORT_MANAGE_DESC": "Allows the agent to view and create reports across the account."
+      },
+      "FORM": {
+        "NAME": {
+          "LABEL": "Role name",
+          "PLACEHOLDER": "Please enter a role name.",
+          "ERROR": "Name is required."
+        },
+        "PERMISSIONS": {
+          "LABEL": "Permissions"
+        },
+        "CANCEL_BUTTON_TEXT": "Cancel",
+        "API": {
+          "ERROR_MESSAGE": "Could not connect to Woot server. Please try again."
+        }
+      },
+      "ADD": {
+        "TITLE": "Add agent role",
+        "DESC": "Create a new role that bundles one or more permissions. You can assign it to agents after saving.",
+        "SUBMIT": "Create role",
+        "API": {
+          "SUCCESS_MESSAGE": "Agent role created successfully."
+        }
+      },
+      "EDIT": {
+        "TITLE": "Edit agent role",
+        "DESC": "Update the name or permissions of this role. Changes apply to every agent that has it assigned.",
+        "SUBMIT": "Save changes",
+        "BUTTON_TEXT": "Edit",
+        "API": {
+          "SUCCESS_MESSAGE": "Agent role updated successfully."
+        }
+      },
+      "DELETE": {
+        "BUTTON_TEXT": "Delete",
+        "API": {
+          "SUCCESS_MESSAGE": "Agent role deleted successfully.",
+          "ERROR_MESSAGE": "Could not connect to Woot server. Please try again."
+        },
+        "CONFIRM": {
+          "TITLE": "Confirm deletion",
+          "MESSAGE": "Delete role",
+          "YES": "Yes, delete",
+          "NO": "No, keep"
+        }
+      }
     }
   }
 }

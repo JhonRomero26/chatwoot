@@ -12,7 +12,9 @@ RSpec.describe ConversationPolicy, type: :policy do
   let(:report_manager_role) { create(:agent_role, account: account, permissions: ['report_manage']) }
   let(:administrator_context) { { user: administrator, account: account, account_user: administrator.account_users.find_by(account: account) } }
   let(:agent_context) { { user: agent, account: account, account_user: agent.account_users.find_by(account: account) } }
-  let(:conversation_manager_context) { { user: conversation_manager, account: account, account_user: conversation_manager.account_users.find_by(account: account) } }
+  let(:conversation_manager_context) do
+    { user: conversation_manager, account: account, account_user: conversation_manager.account_users.find_by(account: account) }
+  end
   let(:report_manager_context) { { user: report_manager, account: account, account_user: report_manager.account_users.find_by(account: account) } }
 
   let(:conversation) { create(:conversation, account: account) }
@@ -117,6 +119,71 @@ RSpec.describe ConversationPolicy, type: :policy do
 
       it 'delegates to inherited custom role permissions' do
         expect(subject).to permit(agent_context, conversation)
+      end
+    end
+
+    context 'when agent has conversation_unassigned_manage agent_role permission' do
+      let(:unassigned_manager) { create(:user, account: account, role: :agent) }
+
+      before do
+        role = create(:agent_role, account: account, permissions: ['conversation_unassigned_manage'])
+        unassigned_manager.account_users.find_by(account: account).update!(agent_role: role)
+      end
+
+      def unassigned_manager_context(unassigned_manager)
+        { user: unassigned_manager, account: account, account_user: unassigned_manager.account_users.find_by(account: account) }
+      end
+
+      it 'allows access to an unassigned conversation' do
+        conversation = create(:conversation, account: account, assignee: nil)
+
+        expect(subject).to permit(unassigned_manager_context(unassigned_manager), conversation)
+      end
+
+      it 'allows access to a conversation assigned to self' do
+        conversation = create(:conversation, account: account, assignee: unassigned_manager)
+
+        expect(subject).to permit(unassigned_manager_context(unassigned_manager), conversation)
+      end
+
+      it 'denies access to a conversation assigned to another agent' do
+        conversation = create(:conversation, account: account, assignee: create(:user, account: account, role: :agent))
+
+        expect(subject).not_to permit(unassigned_manager_context(unassigned_manager), conversation)
+      end
+    end
+
+    context 'when agent has conversation_participating_manage agent_role permission' do
+      let(:participating_manager) { create(:user, account: account, role: :agent) }
+
+      before do
+        role = create(:agent_role, account: account, permissions: ['conversation_participating_manage'])
+        participating_manager.account_users.find_by(account: account).update!(agent_role: role)
+      end
+
+      def participating_manager_context(participating_manager)
+        { user: participating_manager, account: account, account_user: participating_manager.account_users.find_by(account: account) }
+      end
+
+      it 'allows access to a conversation assigned to self' do
+        conversation = create(:conversation, account: account, assignee: participating_manager)
+
+        expect(subject).to permit(participating_manager_context(participating_manager), conversation)
+      end
+
+      it 'allows access to a conversation where the agent is a participant' do
+        inbox = create(:inbox, account: account)
+        create(:inbox_member, user: participating_manager, inbox: inbox)
+        conversation = create(:conversation, account: account, inbox: inbox, assignee: create(:user, account: account, role: :agent))
+        create(:conversation_participant, conversation: conversation, account: account, user: participating_manager)
+
+        expect(subject).to permit(participating_manager_context(participating_manager), conversation)
+      end
+
+      it 'denies access to an unrelated conversation' do
+        conversation = create(:conversation, account: account, assignee: create(:user, account: account, role: :agent))
+
+        expect(subject).not_to permit(participating_manager_context(participating_manager), conversation)
       end
     end
   end

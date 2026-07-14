@@ -102,5 +102,63 @@ RSpec.describe Conversations::PermissionFilterService do
         expect(result).to contain_exactly(assigned_to_agent, assigned_to_other_agent)
       end
     end
+
+    context 'when user has conversation_unassigned_manage agent_role permission' do
+      it 'returns unassigned conversations and conversations assigned to the agent' do
+        unassigned_manager = create(:user, account: account, role: :agent)
+        create(:inbox_member, user: unassigned_manager, inbox: inbox)
+        role = create(:agent_role, account: account, permissions: ['conversation_unassigned_manage'])
+        unassigned_manager.account_users.find_by(account: account).update!(agent_role: role)
+
+        result = described_class.new(
+          account.conversations,
+          unassigned_manager,
+          account
+        ).perform
+
+        expect(result).to contain_exactly(unassigned_conversation)
+      end
+    end
+
+    context 'when user has conversation_participating_manage agent_role permission' do
+      it 'returns conversations assigned to the agent or where the agent participates' do
+        participating_manager = create(:user, account: account, role: :agent)
+        create(:inbox_member, user: participating_manager, inbox: inbox)
+        create(:conversation_participant, account: account, conversation: assigned_to_other_agent, user: participating_manager)
+        role = create(:agent_role, account: account, permissions: ['conversation_participating_manage'])
+        participating_manager.account_users.find_by(account: account).update!(agent_role: role)
+
+        result = described_class.new(
+          account.conversations,
+          participating_manager,
+          account
+        ).perform
+
+        expect(result).to contain_exactly(assigned_to_other_agent)
+      end
+    end
+
+    context 'when user has both conversation_unassigned_manage and conversation_participating_manage' do
+      it 'unions both tiers instead of applying only the first-matching one' do
+        combined_manager = create(:user, account: account, role: :agent)
+        create(:inbox_member, user: combined_manager, inbox: inbox)
+        create(:conversation_participant, account: account, conversation: assigned_to_other_agent, user: combined_manager)
+        role = create(:agent_role, account: account,
+                                   permissions: %w[conversation_unassigned_manage conversation_participating_manage])
+        combined_manager.account_users.find_by(account: account).update!(agent_role: role)
+
+        result = described_class.new(
+          account.conversations,
+          combined_manager,
+          account
+        ).perform
+
+        # unassigned_conversation comes from the unassigned tier; assigned_to_other_agent
+        # comes from the participating tier (as a participant, not the assignee). Both
+        # must be present — matching ConversationPolicy#show?, which OR-checks each tier
+        # independently rather than short-circuiting on the first granted permission.
+        expect(result).to contain_exactly(unassigned_conversation, assigned_to_other_agent)
+      end
+    end
   end
 end

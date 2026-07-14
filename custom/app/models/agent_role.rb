@@ -1,7 +1,14 @@
 # frozen_string_literal: true
 
 class AgentRole < ApplicationRecord
-  PERMISSIONS = %w[conversation_manage report_manage].freeze
+  PERMISSIONS = %w[
+    conversation_manage
+    conversation_unassigned_manage
+    conversation_participating_manage
+    contact_manage
+    report_manage
+    knowledge_base_manage
+  ].freeze
 
   belongs_to :account
   has_many :account_users, dependent: :nullify

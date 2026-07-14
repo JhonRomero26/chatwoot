@@ -121,6 +121,17 @@ export default {
     this.$watch('chatList.length', () => {
       this.setActiveChat();
     });
+    emitter.on(
+      BUS_EVENTS.EVICTED_FROM_CONVERSATION,
+      this.onEvictedFromConversation
+    );
+  },
+
+  beforeUnmount() {
+    emitter.off(
+      BUS_EVENTS.EVICTED_FROM_CONVERSATION,
+      this.onEvictedFromConversation
+    );
   },
 
   methods: {
@@ -189,6 +200,14 @@ export default {
     },
     closeSearch() {
       this.showSearchModal = false;
+    },
+    onEvictedFromConversation({ conversationId }) {
+      if (Number(conversationId) !== Number(this.conversationId)) return;
+      this.$store.commit('CLEAR_EVICTED_CONVERSATION');
+      this.$router.push({
+        name: 'home',
+        params: { accountId: this.accountId },
+      });
     },
   },
 };

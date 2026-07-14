@@ -2,6 +2,8 @@ import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import ActionCableConnector from '../actionCable';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import types from '../../store/mutation-types';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { emitter } from 'shared/helpers/mitt';
 
 vi.mock('shared/helpers/mitt', () => ({
   emitter: {
@@ -22,6 +24,10 @@ global.chatwootConfig = {
 const mockRetryJitter = value =>
   vi.spyOn(Math, 'random').mockReturnValue(value);
 
+const makeUser = ({ role = 'agent', permissions = [] } = {}) => ({
+  accounts: [{ id: 1, role, permissions }],
+});
+
 describe('ActionCableConnector - Copilot Tests', () => {
   let store;
   let actionCable;
@@ -39,6 +45,8 @@ describe('ActionCableConnector - Copilot Tests', () => {
         getters: {
           getCurrentAccountId: 1,
           'accounts/isFeatureEnabledonAccount': vi.fn(() => true),
+          getCurrentUser: makeUser(),
+          getSelectedChat: {},
         },
       },
     };
@@ -388,8 +396,114 @@ describe('ActionCableConnector - Copilot Tests', () => {
       });
 
       expect(mockCommit).toHaveBeenCalledWith(types.DELETE_CONVERSATION, 99);
+      expect(mockCommit).not.toHaveBeenCalledWith(
+        types.SET_EVICTED_CONVERSATION,
+        expect.anything()
+      );
+      expect(emitter.emit).not.toHaveBeenCalledWith(
+        BUS_EVENTS.EVICTED_FROM_CONVERSATION,
+        expect.anything()
+      );
       expect(mockDispatch).not.toHaveBeenCalledWith(
         'updateConversation',
+        expect.anything()
+      );
+    });
+  });
+
+  describe('assignee eviction branches', () => {
+    it('treats a non-privileged user with the open conversation as evicted: marks store, emits bus event, and skips list update', () => {
+      store.$store.getters.getSelectedChat = { id: 99 };
+      store.$store.getters.getCurrentUser = makeUser({
+        role: 'agent',
+        permissions: [],
+      });
+
+      const payload = { id: 99, remove_from_agent_view: true, account_id: 1 };
+      actionCable.onReceived({
+        event: 'assignee.changed',
+        data: payload,
+      });
+
+      expect(mockCommit).toHaveBeenCalledWith(types.DELETE_CONVERSATION, 99);
+      expect(mockCommit).toHaveBeenCalledWith(
+        types.SET_EVICTED_CONVERSATION,
+        99
+      );
+      expect(emitter.emit).toHaveBeenCalledWith(
+        BUS_EVENTS.EVICTED_FROM_CONVERSATION,
+        { conversationId: 99 }
+      );
+      expect(mockDispatch).not.toHaveBeenCalledWith(
+        'updateConversation',
+        expect.anything()
+      );
+    });
+
+    it('does not evict administrators even when the open conversation is removed from their view', () => {
+      store.$store.getters.getSelectedChat = { id: 99 };
+      store.$store.getters.getCurrentUser = makeUser({ role: 'administrator' });
+
+      const payload = { id: 99, remove_from_agent_view: true, account_id: 1 };
+      actionCable.onReceived({
+        event: 'assignee.changed',
+        data: payload,
+      });
+
+      expect(mockCommit).not.toHaveBeenCalledWith(
+        types.DELETE_CONVERSATION,
+        expect.anything()
+      );
+      expect(mockCommit).not.toHaveBeenCalledWith(
+        types.SET_EVICTED_CONVERSATION,
+        expect.anything()
+      );
+      expect(emitter.emit).not.toHaveBeenCalledWith(
+        BUS_EVENTS.EVICTED_FROM_CONVERSATION,
+        expect.anything()
+      );
+      expect(mockDispatch).toHaveBeenCalledWith('updateConversation', payload);
+    });
+
+    it('does not evict agents with conversation_manage permission', () => {
+      store.$store.getters.getSelectedChat = { id: 99 };
+      store.$store.getters.getCurrentUser = makeUser({
+        role: 'agent',
+        permissions: ['conversation_manage'],
+      });
+
+      const payload = { id: 99, remove_from_agent_view: true, account_id: 1 };
+      actionCable.onReceived({
+        event: 'assignee.changed',
+        data: payload,
+      });
+
+      expect(mockCommit).not.toHaveBeenCalledWith(
+        types.DELETE_CONVERSATION,
+        expect.anything()
+      );
+      expect(mockDispatch).toHaveBeenCalledWith('updateConversation', payload);
+    });
+
+    it('removes a non-privileged user from the list and skips eviction when the conversation is not the active one', () => {
+      store.$store.getters.getSelectedChat = { id: 5 };
+      store.$store.getters.getCurrentUser = makeUser({
+        role: 'agent',
+        permissions: [],
+      });
+
+      actionCable.onReceived({
+        event: 'assignee.changed',
+        data: { id: 99, remove_from_agent_view: true, account_id: 1 },
+      });
+
+      expect(mockCommit).toHaveBeenCalledWith(types.DELETE_CONVERSATION, 99);
+      expect(mockCommit).not.toHaveBeenCalledWith(
+        types.SET_EVICTED_CONVERSATION,
+        expect.anything()
+      );
+      expect(emitter.emit).not.toHaveBeenCalledWith(
+        BUS_EVENTS.EVICTED_FROM_CONVERSATION,
         expect.anything()
       );
     });

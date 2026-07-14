@@ -96,7 +96,14 @@ export default {
       listLoadingStatus: 'getAllMessagesLoaded',
       currentAccountId: 'getCurrentAccountId',
       isOnChatwootCloud: 'globalConfig/isOnChatwootCloud',
+      evictedConversationId: 'getEvictedConversationId',
     }),
+    isCurrentUserEvicted() {
+      return (
+        this.evictedConversationId &&
+        Number(this.evictedConversationId) === Number(this.currentChat?.id)
+      );
+    },
     isOpen() {
       return this.currentChat?.status === wootConstants.STATUS_TYPE.OPEN;
     },
@@ -464,7 +471,13 @@ export default {
   >
     <div ref="topBannerRef">
       <Banner
-        v-if="isInstagramRestrictionBannerVisible"
+        v-if="isCurrentUserEvicted"
+        color-scheme="alert"
+        class="mx-2 mt-2 overflow-hidden rounded-lg"
+        :banner-message="$t('CONVERSATION.UNASSIGNED_BANNER')"
+      />
+      <Banner
+        v-else-if="isInstagramRestrictionBannerVisible"
         color-scheme="warning"
         class="mx-2 mt-2 overflow-hidden rounded-lg"
         :banner-message="$t('CONVERSATION.INSTAGRAM_RESTRICTION_BANNER')"

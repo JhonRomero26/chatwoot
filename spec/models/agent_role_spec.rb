@@ -14,10 +14,16 @@ RSpec.describe AgentRole, type: :model do
     it { is_expected.to validate_presence_of(:name) }
 
     it 'allows only fork-owned permissions' do
-      agent_role.permissions = ['contact_manage']
+      agent_role.permissions = ['unsupported_permission']
 
       expect(agent_role).to be_invalid
       expect(agent_role.errors[:permissions]).to be_present
+    end
+
+    it 'allows all six enterprise-parity permissions' do
+      agent_role.permissions = AgentRole::PERMISSIONS
+
+      expect(agent_role).to be_valid
     end
 
     it 'allows an empty permission set' do

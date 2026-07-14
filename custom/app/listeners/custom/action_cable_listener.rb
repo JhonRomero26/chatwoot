@@ -194,8 +194,16 @@ module Custom::ActionCableListener
     return [] if previous_assignee_id == current_assignee_id
     return [] if privileged_user_ids(conversation.account).include?(previous_assignee_id)
     return [] if authorized_custom_role_member_user_ids(conversation).include?(previous_assignee_id)
+    return [] if previous_assignee_privileged_via_agent_role?(conversation.account, previous_assignee_id)
 
     [user_token(previous_assignee_id)].compact
+  end
+
+  # ponytail: agents with `conversation_manage` via an agent_role keep visibility
+  # after a reassignment. Without this check we'd broadcast the eviction payload
+  # (`remove_from_agent_view: true`) and the frontend would yank their open view.
+  def previous_assignee_privileged_via_agent_role?(account, previous_assignee_id)
+    Custom::VisibilityConcern.privileged_account_users(account).exists?(user_id: previous_assignee_id)
   end
 
   def privileged_user_ids(account)

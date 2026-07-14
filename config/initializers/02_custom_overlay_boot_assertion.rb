@@ -13,6 +13,8 @@ module CustomOverlayBootAssertion
     'Conversation' => 'Custom::Conversation',
     'Conversations::PermissionFilterService' => 'Custom::Conversations::PermissionFilterService',
     'ConversationPolicy' => 'Custom::ConversationPolicy',
+    'ContactPolicy' => 'Custom::ContactPolicy',
+    'ArticlePolicy' => 'Custom::ArticlePolicy',
     'SearchService' => 'Custom::SearchService',
     'ActionCableListener' => 'Custom::ActionCableListener',
     'Api::V1::Accounts::AgentsController' => 'Custom::Api::V1::Accounts::AgentsController',

@@ -387,14 +387,36 @@ describe ActionCableListener do
       blocked_assignee = build_custom_role_user([])
       conversation.update!(assignee: blocked_assignee)
       event = Events::Base.new(:'assignee.changed', Time.zone.now, conversation: conversation,
-                               changed_attributes: { 'assignee_id' => [agent.id, blocked_assignee.id] })
+                                                                   changed_attributes: { 'assignee_id' => [agent.id, blocked_assignee.id] })
 
       expect(ActionCableBroadcastJob).to receive(:perform_later).with(
         a_collection_containing_exactly(supervisor.pubsub_token, admin.pubsub_token),
         'assignee.changed',
         conversation.push_event_data.merge(account_id: account.id)
       ).ordered
-      expect(ActionCableBroadcastJob).to receive(:perform_later).with([agent.pubsub_token], 'assignee.changed', removal_payload(conversation.id)).ordered
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with([agent.pubsub_token], 'assignee.changed',
+                                                                      removal_payload(conversation.id)).ordered
+
+      listener.assignee_changed(event)
+    end
+
+    it 'does not include the previous assignee in removal_tokens when they retain conversation_manage via agent_role' do
+      # ponytail: agents with agent_role (conversation_manage) keep visibility
+      # after a reassignment. The broadcast must NOT mark them as evicted.
+      event = Events::Base.new(:'assignee.changed', Time.zone.now, conversation: conversation,
+                                                                   changed_attributes: { 'assignee_id' => [supervisor.id, agent.id] })
+
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token, supervisor.pubsub_token),
+        'assignee.changed',
+        conversation.push_event_data.merge(account_id: account.id)
+      ).ordered
+      # No removal broadcast for supervisor (the previous assignee with conversation_manage).
+      expect(ActionCableBroadcastJob).not_to receive(:perform_later).with(
+        a_collection_including(supervisor.pubsub_token),
+        'assignee.changed',
+        hash_including(remove_from_agent_view: true)
+      )
 
       listener.assignee_changed(event)
     end
@@ -411,7 +433,7 @@ describe ActionCableListener do
       unassigned_conversation = create(:conversation, account: account, inbox: inbox, assignee: nil)
       unassigned_conversation.update!(assignee: claiming_agent)
       event = Events::Base.new(:'assignee.changed', Time.zone.now, conversation: unassigned_conversation,
-                               changed_attributes: { 'assignee_id' => [nil, claiming_agent.id] })
+                                                                   changed_attributes: { 'assignee_id' => [nil, claiming_agent.id] })
 
       expect(ActionCableBroadcastJob).to receive(:perform_later).with(
         a_collection_containing_exactly(claiming_agent.pubsub_token, supervisor.pubsub_token, admin.pubsub_token),
