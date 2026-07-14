@@ -3,6 +3,7 @@ import { computed, ref, watch, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
+import { getUserPermissions } from 'dashboard/helper/permissionsHelper';
 import ConversationCard from './widgets/conversation/ConversationCard.vue';
 import ConversationCardExpanded from 'dashboard/components-next/Conversation/ConversationCard/ConversationCardExpanded.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
@@ -77,6 +78,22 @@ const showInboxName = computed(
 const isInboxView = computed(() => !!activeInbox.value);
 const showAssigneeForExpandedCard = computed(
   () => props.showExpanded || props.showAssignee
+);
+const currentUser = useMapGetter('getCurrentUser');
+const currentRole = useMapGetter('getCurrentRole');
+const userPermissions = computed(() =>
+  getUserPermissions(currentUser.value, accountId.value)
+);
+const isPrivileged = computed(
+  () =>
+    currentRole.value === 'administrator' ||
+    userPermissions.value.includes('conversation_manage')
+);
+const lockUnassign = computed(
+  () =>
+    !isPrivileged.value &&
+    assignee.value?.id &&
+    currentUser.value?.id === assignee.value.id
 );
 
 const conversationPath = computed(() =>
@@ -229,6 +246,7 @@ const onDeleteConversation = () => {
       :has-unread-messages="source.unread_count > 0"
       :conversation-labels="source.labels"
       :conversation-url="conversationPath"
+      :lock-unassign="lockUnassign"
       @update-conversation="onUpdateConversation"
       @assign-agent="onAssignAgent"
       @assign-label="onAssignLabel"

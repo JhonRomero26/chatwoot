@@ -11,11 +11,25 @@ defineProps({
     type: String,
     default: 'default',
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+  disabledTooltip: {
+    type: String,
+    default: '',
+  },
 });
 </script>
 
 <template>
-  <div class="menu text-n-slate-12 min-h-7 min-w-0" role="button">
+  <div
+    v-tooltip.top="disabled ? disabledTooltip : false"
+    class="menu text-n-slate-12 min-h-7 min-w-0"
+    :class="{ 'menu--disabled': disabled }"
+    role="button"
+    :aria-disabled="disabled"
+  >
     <fluent-icon
       v-if="variant === 'icon' && option.icon"
       :icon="option.icon"
@@ -68,6 +82,14 @@ defineProps({
 
   &:hover {
     @apply bg-n-brand text-white;
+  }
+}
+
+.menu--disabled {
+  @apply opacity-50 cursor-not-allowed;
+
+  &:hover {
+    @apply bg-transparent text-n-slate-12;
   }
 }
 

@@ -113,6 +113,7 @@ en:
     conversations:
       unread_counts:
         feature_not_enabled: Conversation unread counts feature not enabled for this account
+      assignment_locked: "You can't unassign this conversation. Resolve it or reassign it to a teammate instead."
     data_import:
       data_type:
         invalid: Invalid data type

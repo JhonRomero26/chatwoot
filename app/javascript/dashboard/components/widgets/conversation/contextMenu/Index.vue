@@ -65,6 +65,10 @@ export default {
       type: Array,
       default: () => [],
     },
+    lockUnassign: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: [
     'updateConversation',
@@ -262,6 +266,9 @@ export default {
       // i.e.: Don't show an option to resolve if the conversation is already resolved.
       return this.status !== key;
     },
+    isUnassignLocked(agent) {
+      return this.lockUnassign && agent.id === null;
+    },
     generateMenuLabelConfig(option, type = 'text') {
       return {
         key: option.id,
@@ -274,6 +281,10 @@ export default {
         ...(type === 'agent' && { label: option.name }),
         ...(type === 'team' && { label: option.name }),
       };
+    },
+    onAgentClick(agent) {
+      if (this.isUnassignLocked(agent)) return;
+      this.$emit('assignAgent', agent);
     },
   },
 };
@@ -363,7 +374,13 @@ export default {
             :key="agent.id"
             :option="generateMenuLabelConfig(agent, 'agent')"
             variant="agent"
-            @click.stop="$emit('assignAgent', agent)"
+            :disabled="isUnassignLocked(agent)"
+            :disabled-tooltip="
+              isUnassignLocked(agent)
+                ? $t('CONVERSATION.CARD_CONTEXT_MENU.ASSIGNMENT.LOCKED_TOOLTIP')
+                : ''
+            "
+            @click.stop="onAgentClick(agent)"
           />
         </template>
       </MenuItemWithSubmenu>

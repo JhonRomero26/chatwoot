@@ -3,6 +3,7 @@ import ConversationApi from '../../../api/inbox/conversation';
 import MessageApi from '../../../api/inbox/message';
 import { MESSAGE_STATUS, MESSAGE_TYPE } from 'shared/constants/messages';
 import { createPendingMessage } from 'dashboard/helper/commons';
+import { useAlert } from 'dashboard/composables';
 import {
   buildConversationList,
   isOnMentionsView,
@@ -224,7 +225,18 @@ const actions = {
         assigneeType,
       });
     } catch (error) {
-      // Handle error
+      // 403 + ASSIGNMENT_LOCKED = assignment self-lock; show the friendly
+      // toast instead of silently swallowing. Any other error keeps the
+      // existing silent behaviour (matches the previous contract).
+      if (
+        error?.response?.status === 403 &&
+        error?.response?.data?.error_code === 'ASSIGNMENT_LOCKED'
+      ) {
+        const message =
+          error.response.data.error ||
+          "You can't unassign this conversation — resolve it or reassign to a teammate.";
+        useAlert(message);
+      }
     }
   },
 

@@ -182,6 +182,10 @@
       },
       "ASSIGN_AGENT": "Assign agent",
       "ASSIGN_LABEL": "Assign label",
+      "ASSIGNMENT": {
+        "LOCKED_TOOLTIP": "You can't unassign this conversation. Resolve it or reassign to a teammate.",
+        "LOCKED_TOAST": "You can't unassign this conversation — resolve it or reassign to a teammate."
+      },
       "AGENTS_LOADING": "Loading agents...",
       "ASSIGN_TEAM": "Assign team",
       "DELETE": "Delete conversation",

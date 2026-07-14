@@ -19,6 +19,10 @@ const commit = vi.fn();
 const dispatch = vi.fn();
 global.axios = axios;
 vi.mock('axios');
+const useAlertSpy = vi.fn();
+vi.mock('dashboard/composables', () => ({
+  useAlert: (...args) => useAlertSpy(...args),
+}));
 
 describe('#hasMessageFailedWithExternalError', () => {
   it('returns false if message is sent', () => {
@@ -364,6 +368,32 @@ describe('#actions', () => {
         assignee: { id: 1, name: 'User' },
         assigneeType: 'AgentBot',
       });
+    });
+
+    it('shows the assignment-locked toast when the API responds with 403 + ASSIGNMENT_LOCKED', async () => {
+      axios.post.mockRejectedValue({
+        response: {
+          status: 403,
+          data: {
+            error:
+              "You can't unassign this conversation — resolve it or reassign to a teammate.",
+            error_code: 'ASSIGNMENT_LOCKED',
+          },
+        },
+      });
+
+      await actions.assignAgent(
+        { dispatch },
+        { conversationId: 1, agentId: null, assigneeType: 'User' }
+      );
+
+      expect(useAlertSpy).toHaveBeenCalledWith(
+        "You can't unassign this conversation — resolve it or reassign to a teammate."
+      );
+      expect(dispatch).not.toHaveBeenCalledWith(
+        'setCurrentChatAssignee',
+        expect.anything()
+      );
     });
   });
 
