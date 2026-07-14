@@ -24,6 +24,7 @@ const props = defineProps({
   message: { type: String, default: '' },
   hasError: { type: Boolean, default: false },
   useApiResults: { type: Boolean, default: false }, // useApiResults prop to determine if search is handled by API
+  id: { type: String, default: '' },
 });
 
 const emit = defineEmits(['update:modelValue', 'search', 'open']);
@@ -100,6 +101,7 @@ watch(
   >
     <OnClickOutside @trigger="open = false">
       <Button
+        :id="props.id"
         variant="outline"
         :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
         :label="selectedLabel"

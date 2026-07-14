@@ -105,14 +105,20 @@
       "LOADING": "Loading schedule",
       "TIMEZONE_LABEL": "Timezone",
       "TIMEZONE_PLACEHOLDER": "Select timezone",
-      "DAY_HELP": "Add one or more availability ranges for this day.",
-      "UNAVAILABLE": "No availability ranges configured for this day.",
-      "ADD_RANGE": "Add range",
-      "REMOVE_RANGE": "Remove range",
+      "NEW_ENTRY_TITLE": "New schedule",
+      "SELECT_DAYS_LABEL": "Select days",
       "FROM": "From",
       "TO": "To",
-      "FROM_LABEL": "Start time for {day} range {index}",
-      "TO_LABEL": "End time for {day} range {index}",
+      "FROM_HOUR_LABEL": "From hour",
+      "FROM_MINUTE_LABEL": "From minute",
+      "TO_HOUR_LABEL": "To hour",
+      "TO_MINUTE_LABEL": "To minute",
+      "ADD_SCHEDULE": "Add schedule",
+      "TIME_RANGE": "{from}-{to}",
+      "ENTRY_HELP": "Adding a schedule appends this time range to every selected day. Existing ranges on other days are kept.",
+      "CURRENT_SCHEDULE_TITLE": "Current schedule",
+      "NO_ENTRIES": "No availability ranges added yet.",
+      "DELETE_ENTRY": "Delete schedule entry",
       "CANCEL": "Cancel",
       "SAVE": "Save schedule",
       "DAYS": {
@@ -127,7 +133,8 @@
       "ERRORS": {
         "MISSING_TIME": "Each range needs a start and end time.",
         "INVALID_ORDER": "End time must be after the start time.",
-        "OVERLAP": "Ranges on the same day cannot overlap."
+        "OVERLAP": "Ranges on the same day cannot overlap.",
+        "SELECT_DAYS": "Select at least one day."
       },
       "API": {
         "SUCCESS_MESSAGE": "Schedule updated successfully",
