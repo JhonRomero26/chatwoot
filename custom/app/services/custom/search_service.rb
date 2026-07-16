@@ -2,14 +2,13 @@
 
 module Custom::SearchService
   def filter_conversations
-    if Custom::VisibilityConcern.privileged?(account_user)
-      @conversations = privileged_conversations_query.order('conversations.created_at DESC')
-                                                 .page(params[:page])
-                                                 .per(15)
-      return
-    end
-
-    @conversations = super.merge(Conversation.visible_to_account_user(account_user))
+    @conversations = if Custom::VisibilityConcern.privileged?(account_user)
+                        privileged_conversations_query.order('conversations.created_at DESC')
+                                                       .page(params[:page])
+                                                       .per(15)
+                      else
+                        super.merge(Conversation.visible_to_account_user(account_user))
+                      end
   end
 
   private

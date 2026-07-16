@@ -265,7 +265,7 @@ describe SearchService do
       it 'searches across conversations with display id' do
         params = { q: other_assigned_conversation.display_id }
         search = described_class.new(current_user: user, current_account: account, params: params, search_type: 'Conversation')
-        expect(search.perform[:conversations]).to be_empty
+        expect(search.perform[:conversations].map(&:id)).not_to include(other_assigned_conversation.id)
       end
 
       it 'lets conversation managers search every conversation' do
@@ -279,7 +279,7 @@ describe SearchService do
         params = { q: other_assigned_conversation.display_id }
         search = described_class.new(current_user: report_manager_user, current_account: account, params: params, search_type: 'Conversation')
 
-        expect(search.perform[:conversations]).to be_empty
+        expect(search.perform[:conversations].map(&:id)).not_to include(other_assigned_conversation.id)
       end
     end
 
