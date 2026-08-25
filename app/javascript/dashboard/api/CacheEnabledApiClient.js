@@ -3,9 +3,20 @@ import { DataManager } from '../helper/CacheHelper/DataManager';
 import ApiClient from './ApiClient';
 
 class CacheEnabledApiClient extends ApiClient {
-  constructor(resource, options = {}) {
-    super(resource, options);
-    this.dataManager = new DataManager(this.accountIdFromRoute);
+  // These clients are module level singletons while `accountIdFromRoute` is
+  // resolved from the URL on every access. Building the DataManager once in the
+  // constructor freezes it to whichever account was in the URL at import time
+  // (an empty string when the app boots from `/`), which leaks the cached
+  // records of one account into another. Rebuild it whenever the account changes.
+  get dataManager() {
+    const accountId = this.accountIdFromRoute;
+
+    if (this.dataManagerAccountId !== accountId) {
+      this.dataManagerAccountId = accountId;
+      this.cachedDataManager = new DataManager(accountId);
+    }
+
+    return this.cachedDataManager;
   }
 
   // eslint-disable-next-line class-methods-use-this
